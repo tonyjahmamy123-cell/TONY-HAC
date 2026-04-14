@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: tony-hack
+    env: python
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GIST_ID
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: BASE_URL
+        sync: false
