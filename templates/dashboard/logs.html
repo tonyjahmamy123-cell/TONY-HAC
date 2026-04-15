@@ -2,16 +2,191 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TONY-HACK | Logs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>TONY-HACK | Logs Ultra Pro Max</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #e94560; --primary-dark: #c13b52; --bg-dark: #0a0e14;
+            --bg-card: rgba(22, 27, 34, 0.95); --text-primary: #ffffff;
+            --text-secondary: #8b949e; --border: rgba(233, 69, 96, 0.2);
+            --success: #238636; --danger: #da3633; --warning: #d29922;
+        }
+        .logs-container { padding: 4px 0; }
+        .filter-section {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+            margin-bottom: 24px; padding: 20px; background: var(--bg-card);
+            border: 1.5px solid var(--border); border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .search-wrapper { flex: 2; min-width: 250px; position: relative; }
+        .search-wrapper i {
+            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .search-input {
+            width: 100%; padding: 16px 16px 16px 50px; background: rgba(10, 14, 20, 0.5);
+            border: 1.5px solid var(--border); border-radius: 16px; color: var(--text-primary);
+            font-size: 15px; outline: none; transition: all 0.3s;
+        }
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.1); }
+        .filter-select {
+            padding: 16px 20px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
+            border-radius: 16px; color: var(--text-primary); font-size: 14px; outline: none;
+            cursor: pointer; min-width: 180px;
+        }
+        .filter-select option { background: var(--bg-card); color: var(--text-primary); }
+        .date-filter { display: flex; align-items: center; gap: 8px; }
+        .date-input {
+            padding: 16px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
+            border-radius: 16px; color: var(--text-primary); font-size: 14px; outline: none; width: 150px;
+        }
+        .action-buttons { display: flex; gap: 10px; }
+        .action-btn {
+            padding: 16px 24px; background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px;
+        }
+        .action-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+        .action-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
+        .stats-mini-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;
+        }
+        .mini-stat-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(22, 27, 34, 0.7) 100%);
+            border: 1.5px solid var(--border); border-radius: 18px; padding: 18px;
+            display: flex; align-items: center; gap: 16px; backdrop-filter: blur(10px);
+        }
+        .mini-stat-icon {
+            width: 50px; height: 50px; background: rgba(233, 69, 96, 0.12);
+            border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        }
+        .mini-stat-icon i { font-size: 24px; color: var(--primary); }
+        .mini-stat-content h4 { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .mini-stat-content p {
+            font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .logs-table-card {
+            background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 24px;
+            overflow: hidden; backdrop-filter: blur(10px); margin-bottom: 24px;
+        }
+        .table-header {
+            padding: 22px 24px; border-bottom: 1.5px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(10, 14, 20, 0.3);
+        }
+        .table-header h3 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .table-actions { display: flex; gap: 12px; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        th {
+            padding: 18px 16px; font-size: 12px; font-weight: 700; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px; border-bottom: 1.5px solid var(--border);
+            text-align: left; background: rgba(10, 14, 20, 0.2); white-space: nowrap;
+        }
+        td {
+            padding: 16px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            white-space: nowrap;
+        }
+        tr:hover { background: rgba(233, 69, 96, 0.05); }
+        .template-badge {
+            padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 600; text-transform: uppercase;
+        }
+        .badge-facebook { background: #1877f2; color: white; }
+        .badge-google { background: #ea4335; color: white; }
+        .badge-instagram { background: #e4405f; color: white; }
+        .badge-linkedin { background: #0077b5; color: white; }
+        .badge-netflix { background: #e50914; color: white; }
+        .badge-custom { background: var(--primary); color: white; }
+        .password-cell { display: flex; align-items: center; gap: 10px; }
+        .password-hidden, .password-shown {
+            cursor: pointer; padding: 6px 14px; border-radius: 8px; font-family: monospace; transition: all 0.2s;
+        }
+        .password-hidden { background: var(--bg-dark); color: var(--text-secondary); border: 1px solid var(--border); }
+        .password-shown { background: var(--primary); color: white; }
+        .copy-btn {
+            background: none; border: none; color: var(--text-secondary); cursor: pointer;
+            padding: 6px; border-radius: 6px; transition: all 0.2s;
+        }
+        .copy-btn:hover { color: var(--primary); background: rgba(233, 69, 96, 0.1); }
+        .ip-cell { font-family: monospace; display: flex; align-items: center; gap: 8px; }
+        .country-cell { display: flex; align-items: center; gap: 8px; }
+        .country-flag { font-size: 20px; }
+        .action-cell { display: flex; gap: 8px; }
+        .action-icon {
+            width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            background: var(--bg-dark); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        .action-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .action-icon.delete:hover { background: var(--danger); border-color: var(--danger); }
+        .pagination-container {
+            display: flex; align-items: center; justify-content: space-between; padding: 20px 24px;
+            border-top: 1.5px solid var(--border);
+        }
+        .pagination-info { color: var(--text-secondary); font-size: 14px; }
+        .pagination { display: flex; gap: 8px; }
+        .page-btn {
+            width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            background: var(--bg-dark); border: 1.5px solid var(--border); color: var(--text-secondary);
+            cursor: pointer; transition: all 0.2s; font-weight: 600;
+        }
+        .page-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+        .per-page-select {
+            padding: 10px 16px; background: var(--bg-dark); border: 1.5px solid var(--border);
+            border-radius: 12px; color: var(--text-primary); font-size: 14px; outline: none;
+        }
+        .export-bar {
+            display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 20px 0;
+        }
+        .export-btn {
+            padding: 14px 24px; background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px;
+        }
+        .export-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .modal {
+            background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 28px;
+            padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .modal-title { font-size: 22px; font-weight: 700; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 28px; cursor: pointer; }
+        .detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 16px; }
+        .detail-label { color: var(--text-secondary); font-weight: 600; }
+        .detail-value { color: var(--text-primary); word-break: break-all; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; }
+        .toast {
+            background: var(--bg-card); backdrop-filter: blur(20px); border: 1.5px solid var(--border);
+            border-radius: 16px; padding: 16px 24px; margin-top: 12px; display: flex; align-items: center;
+            gap: 14px; animation: slideIn 0.3s;
+        }
+        .toast.success { border-left: 5px solid var(--success); }
+        .toast.error { border-left: 5px solid var(--danger); }
+        .toast.info { border-left: 5px solid #58a6ff; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @media (max-width: 1000px) {
+            .stats-mini-grid { grid-template-columns: repeat(3, 1fr); }
+            .filter-section { flex-direction: column; align-items: stretch; }
+        }
+        @media (max-width: 600px) {
+            .stats-mini-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
     <div class="sidebar">
         <div class="sidebar-header"><h2>TONY-HACK</h2></div>
         <div class="sidebar-user">
-            <div class="avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="avatar" id="sidebarAvatar"><i class="fas fa-user-shield"></i></div>
             <div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div>
         </div>
         <div class="sidebar-nav">
@@ -31,203 +206,115 @@
     
     <div class="main-content">
         <div class="page-header">
-            <h1 class="page-title">Logs <span>Credentials</span></h1>
+            <h1 class="page-title">Logs <span>Ultra Pro Max</span></h1>
             <div class="flex items-center gap-2">
-                <button class="btn btn-danger btn-sm" onclick="clearAllLogs()">
-                    <i class="fas fa-trash"></i> Tout effacer
-                </button>
-                <button class="btn btn-primary btn-sm" onclick="exportCSV()">
-                    <i class="fas fa-download"></i> Export CSV
-                </button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleAutoRefresh()"><i class="fas fa-clock"></i> Auto</button>
+                <button class="btn btn-primary btn-sm" onclick="refreshLogs()"><i class="fas fa-sync-alt"></i> Actualiser</button>
             </div>
         </div>
         
-        <!-- Filtres -->
-        <div class="card">
-            <div class="flex items-center gap-4" style="flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <input type="text" id="searchInput" placeholder="🔍 Rechercher (username, IP)..." 
-                           style="width: 100%;">
+        <div class="logs-container">
+            <div class="filter-section">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Rechercher username, email, IP, pays..." onkeyup="debounceSearch()">
                 </div>
-                <div style="min-width: 150px;">
-                    <select id="templateFilter" style="width: 100%;">
-                        <option value="">Tous les templates</option>
-                        {% for template in templates %}
-                        <option value="{{ template.id }}">{{ template.name }}</option>
-                        {% endfor %}
-                    </select>
+                <select id="templateFilter" class="filter-select" onchange="applyFilters()"><option value="">Tous les templates</option></select>
+                <div class="date-filter">
+                    <input type="date" id="dateFrom" class="date-input" onchange="applyFilters()">
+                    <span style="color: var(--text-secondary);">à</span>
+                    <input type="date" id="dateTo" class="date-input" onchange="applyFilters()">
                 </div>
-                <button class="btn btn-secondary" onclick="loadLogs()">
-                    <i class="fas fa-filter"></i> Filtrer
-                </button>
-            </div>
-        </div>
-        
-        <!-- Table des logs -->
-        <div class="card">
-            <div class="table-container">
-                <table id="logsTable">
-                    <thead>
-                        <tr>
-                            <th>Template</th>
-                            <th>Username</th>
-                            <th>Password</th>
-                            <th>IP</th>
-                            <th>Localisation</th>
-                            <th>Cible</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsBody">
-                        <tr><td colspan="8" style="text-align: center;">Chargement...</td></tr>
-                    </tbody>
-                </table>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="exportLogs('csv')"><i class="fas fa-download"></i> CSV</button>
+                    <button class="action-btn" onclick="exportLogs('txt')"><i class="fas fa-file-alt"></i> TXT</button>
+                    <button class="action-btn danger" onclick="clearAllLogs()"><i class="fas fa-trash"></i> Effacer</button>
+                </div>
             </div>
             
-            <!-- Pagination -->
-            <div class="flex items-center justify-between mt-4">
-                <div id="paginationInfo"></div>
-                <div class="flex gap-2" id="paginationControls"></div>
+            <div class="stats-mini-grid">
+                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-database"></i></div><div class="mini-stat-content"><h4 id="totalLogs">0</h4><p>Total Logs</p></div></div>
+                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-globe"></i></div><div class="mini-stat-content"><h4 id="uniqueIPsCount">0</h4><p>IP Uniques</p></div></div>
+                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-flag"></i></div><div class="mini-stat-content"><h4 id="countriesCountMini">0</h4><p>Pays</p></div></div>
+                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-clock"></i></div><div class="mini-stat-content"><h4 id="todayLogs">0</h4><p>Aujourd'hui</p></div></div>
+                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-trophy"></i></div><div class="mini-stat-content"><h4 id="topTemplateMini">-</h4><p>Top Template</p></div></div>
+            </div>
+            
+            <div class="logs-table-card">
+                <div class="table-header">
+                    <h3><i class="fas fa-list-ul"></i> Liste des credentials</h3>
+                    <div class="table-actions">
+                        <button class="action-btn" onclick="selectAll()"><i class="fas fa-check-double"></i> Sélectionner</button>
+                        <button class="action-btn danger" onclick="deleteSelected()"><i class="fas fa-trash"></i> Supprimer</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th style="width:30px;"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll()"></th><th>Template</th><th>Username</th><th>Password</th><th>IP</th><th>Localisation</th><th>Cible</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody id="logsTableBody"><tr><td colspan="9" style="text-align:center;padding:60px;">Chargement...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="pagination-container">
+                    <div class="pagination-info" id="paginationInfo">Affichage de 1-20 sur 0 logs</div>
+                    <div class="pagination" id="pagination"></div>
+                    <select class="per-page-select" id="perPageSelect" onchange="changePerPage()">
+                        <option value="20">20</option><option value="50">50</option><option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="export-bar">
+                <button class="export-btn" onclick="exportLogs('csv')"><i class="fas fa-file-csv"></i> CSV</button>
+                <button class="export-btn" onclick="exportLogs('txt')"><i class="fas fa-file-alt"></i> TXT</button>
+                <button class="export-btn" onclick="exportLogs('json')"><i class="fas fa-code"></i> JSON</button>
+                <button class="export-btn" onclick="copyAllToClipboard()"><i class="fas fa-copy"></i> Copier tout</button>
             </div>
         </div>
     </div>
     
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal"><div class="modal-header"><h3 class="modal-title">Détails</h3><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="detail-grid" id="modalContent"></div></div>
+    </div>
     <div class="toast-container" id="toastContainer"></div>
     
+    <script src="{{ url_for('static', filename='js/avatar-loader.js') }}"></script>
     <script>
-        let currentPage = 1;
-        let totalPages = 1;
-        
-        function showToast(title, message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
-            toast.innerHTML = `<i class="fas fa-${icon}"></i><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
-        }
-        
-        async function loadLogs(page = 1) {
-            currentPage = page;
-            const search = document.getElementById('searchInput').value;
-            const template = document.getElementById('templateFilter').value;
-            
-            let url = `/api/credentials?page=${page}&per_page=20`;
-            if (search) url += `&search=${encodeURIComponent(search)}`;
-            if (template) url += `&template=${template}`;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                totalPages = data.pages;
-                renderLogs(data.credentials);
-                renderPagination(data);
-            } catch (e) {
-                console.error('Erreur:', e);
-            }
-        }
-        
-        function renderLogs(credentials) {
-            const tbody = document.getElementById('logsBody');
-            
-            if (credentials.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Aucun log trouvé</td></tr>';
-                return;
-            }
-            
-            tbody.innerHTML = credentials.map(cred => `
-                <tr>
-                    <td><span class="badge badge-${cred.template_name.toLowerCase()}">${cred.template_name}</span></td>
-                    <td>${cred.username}</td>
-                    <td>
-                        <span class="password-hidden" onclick="togglePassword(this)">••••••••</span>
-                        <span class="password-shown" style="display:none">${cred.password}</span>
-                    </td>
-                    <td><code>${cred.ip}</code></td>
-                    <td>${cred.flag || '🌍'} ${cred.country || 'Inconnu'}<br><small>${cred.city || ''}</small></td>
-                    <td>${cred.target || '-'}</td>
-                    <td>${cred.timestamp ? cred.timestamp.slice(0,16).replace('T',' ') : '-'}</td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="deleteLog('${cred.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        function renderPagination(data) {
-            document.getElementById('paginationInfo').innerHTML = 
-                `Affichage ${(data.page-1)*20 + 1}-${Math.min(data.page*20, data.total)} sur ${data.total} logs`;
-            
-            const controls = document.getElementById('paginationControls');
-            let html = '';
-            
-            if (data.page > 1) {
-                html += `<button class="btn btn-secondary btn-sm" onclick="loadLogs(${data.page-1})"><i class="fas fa-chevron-left"></i></button>`;
-            }
-            
-            for (let i = Math.max(1, data.page-2); i <= Math.min(data.pages, data.page+2); i++) {
-                html += `<button class="btn ${i === data.page ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="loadLogs(${i})">${i}</button>`;
-            }
-            
-            if (data.page < data.pages) {
-                html += `<button class="btn btn-secondary btn-sm" onclick="loadLogs(${data.page+1})"><i class="fas fa-chevron-right"></i></button>`;
-            }
-            
-            controls.innerHTML = html;
-        }
-        
-        function togglePassword(el) {
-            const parent = el.parentElement;
-            const hidden = parent.querySelector('.password-hidden');
-            const shown = parent.querySelector('.password-shown');
-            if (hidden.style.display !== 'none') {
-                hidden.style.display = 'none';
-                shown.style.display = 'inline';
-            } else {
-                hidden.style.display = 'inline';
-                shown.style.display = 'none';
-            }
-        }
-        
-        async function deleteLog(id) {
-            if (!confirm('Supprimer ce log ?')) return;
-            try {
-                await fetch(`/api/credentials?id=${id}`, { method: 'DELETE' });
-                showToast('Succès', 'Log supprimé', 'success');
-                loadLogs(currentPage);
-            } catch (e) {
-                showToast('Erreur', 'Impossible de supprimer', 'error');
-            }
-        }
-        
-        async function clearAllLogs() {
-            if (!confirm('⚠️ Supprimer TOUS les logs ? Cette action est irréversible !')) return;
-            try {
-                await fetch('/api/credentials', { method: 'DELETE' });
-                showToast('Succès', 'Tous les logs ont été supprimés', 'success');
-                loadLogs(1);
-            } catch (e) {
-                showToast('Erreur', 'Impossible de supprimer', 'error');
-            }
-        }
-        
-        function exportCSV() {
-            window.open('/api/credentials/export?format=csv', '_blank');
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => loadLogs());
-        
-        // Recherche en temps réel avec debounce
-        let timeout;
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => loadLogs(1), 500);
-        });
+        let allLogs=[],filteredLogs=[],currentPage=1,perPage=20,totalPages=1,selectedLogs=new Set(),searchTimeout=null,autoRefresh=false,refreshInterval=null;
+        function showToast(t,m,ty='info'){const c=document.getElementById('toastContainer'),to=document.createElement('div');to.className=`toast ${ty}`;let i='info-circle';if(ty==='success')i='check-circle';if(ty==='error')i='exclamation-circle';to.innerHTML=`<i class="fas fa-${i}"></i><div><div style="font-weight:600;">${t}</div><div style="font-size:13px;opacity:0.8;">${m}</div></div>`;c.appendChild(to);setTimeout(()=>to.remove(),4000);}
+        function debounceSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>applyFilters(),500);}
+        async function loadLogs(){try{const r=await fetch('/api/credentials');const d=await r.json();allLogs=d.credentials;updateTemplateFilter();applyFilters();}catch(e){showToast('Erreur','Chargement impossible','error');}}
+        function updateTemplateFilter(){const t=[...new Set(allLogs.map(l=>l.template_name))],s=document.getElementById('templateFilter');s.innerHTML='<option value="">Tous les templates</option>';t.forEach(tn=>{if(tn){const o=document.createElement('option');o.value=tn;o.textContent=tn;s.appendChild(o);}});}
+        function applyFilters(){const s=document.getElementById('searchInput').value.toLowerCase(),t=document.getElementById('templateFilter').value,df=document.getElementById('dateFrom').value,dt=document.getElementById('dateTo').value;
+            filteredLogs=allLogs.filter(l=>{if(s){const x=`${l.username} ${l.email} ${l.ip} ${l.country} ${l.city} ${l.target} ${l.template_name}`.toLowerCase();if(!x.includes(s))return false;}if(t&&l.template_name!==t)return false;if(df||dt){if(!l.timestamp)return true;const ld=new Date(l.timestamp).toISOString().split('T')[0];if(df&&ld<df)return false;if(dt&&ld>dt)return false;}return true;});
+            filteredLogs.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));updateStats();renderPage();}
+        function updateStats(){document.getElementById('totalLogs').textContent=filteredLogs.length;document.getElementById('uniqueIPsCount').textContent=new Set(filteredLogs.map(l=>l.ip)).size;document.getElementById('countriesCountMini').textContent=new Set(filteredLogs.map(l=>l.country)).size;
+            const td=new Date().toDateString();document.getElementById('todayLogs').textContent=filteredLogs.filter(l=>l.timestamp&&new Date(l.timestamp).toDateString()===td).length;
+            const tpls={};filteredLogs.forEach(l=>{tpls[l.template_name]=(tpls[l.template_name]||0)+1;});const top=Object.entries(tpls).sort((a,b)=>b[1]-a[1])[0];document.getElementById('topTemplateMini').textContent=top?top[0]:'-';}
+        function renderPage(){totalPages=Math.ceil(filteredLogs.length/perPage);if(currentPage>totalPages)currentPage=Math.max(1,totalPages);const s=(currentPage-1)*perPage,e=s+perPage,pl=filteredLogs.slice(s,e);renderTable(pl);renderPagination();document.getElementById('paginationInfo').textContent=`Affichage de ${s+1}-${Math.min(e,filteredLogs.length)} sur ${filteredLogs.length} logs`;}
+        function renderTable(logs){const t=document.getElementById('logsTableBody');if(!logs.length){t.innerHTML='<tr><td colspan="9" style="text-align:center;padding:60px;">Aucun log</td></tr>';return;}
+            t.innerHTML=logs.map(l=>{const tc=`badge-${(l.template_type||'custom').toLowerCase()}`,f=getFlag(l.country),d=l.timestamp?new Date(l.timestamp).toLocaleString('fr-FR'):'-';
+                return `<tr><td><input type="checkbox" class="log-checkbox" value="${l.id}" onchange="updateSelected()"></td><td><span class="template-badge ${tc}">${l.template_name||'-'}</span></td><td>${l.username||'-'}</td><td><div class="password-cell"><span class="password-hidden" onclick="revealPassword(this,'${l.password||''}')">••••••••</span><button class="copy-btn" onclick="copyToClipboard('${l.password||''}')"><i class="fas fa-copy"></i></button></div></td><td><div class="ip-cell"><code>${l.ip||'-'}</code><button class="copy-btn" onclick="copyToClipboard('${l.ip||''}')"><i class="fas fa-copy"></i></button></div></td><td><div class="country-cell"><span class="country-flag">${f}</span><span>${l.country||'-'}<br><small>${l.city||''}</small></span></div></td><td>${l.target||'-'}</td><td>${d}</td><td><div class="action-cell"><div class="action-icon" onclick="viewDetails('${l.id}')"><i class="fas fa-eye"></i></div><div class="action-icon" onclick="copyRow('${l.id}')"><i class="fas fa-copy"></i></div><div class="action-icon delete" onclick="deleteLog('${l.id}')"><i class="fas fa-trash"></i></div></div></td></tr>`;}).join('');}
+        function getFlag(c){const f={'France':'🇫🇷','Madagascar':'🇲🇬','USA':'🇺🇸','Canada':'🇨🇦','Allemagne':'🇩🇪','Espagne':'🇪🇸','Italie':'🇮🇹','Royaume-Uni':'🇬🇧','Belgique':'🇧🇪','Suisse':'🇨🇭','Inconnu':'🌍'};return f[c]||'🌍';}
+        function renderPagination(){const c=document.getElementById('pagination');let h='';h+=`<div class="page-btn ${currentPage===1?'disabled':''}" onclick="${currentPage>1?`goToPage(${currentPage-1})`:''}"><i class="fas fa-chevron-left"></i></div>`;const s=Math.max(1,currentPage-2),e=Math.min(totalPages,currentPage+2);if(s>1){h+=`<div class="page-btn" onclick="goToPage(1)">1</div>`;if(s>2)h+=`<div class="page-btn disabled">...</div>`;}for(let i=s;i<=e;i++){h+=`<div class="page-btn ${i===currentPage?'active':''}" onclick="goToPage(${i})">${i}</div>`;}if(e<totalPages){if(e<totalPages-1)h+=`<div class="page-btn disabled">...</div>`;h+=`<div class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</div>`;}h+=`<div class="page-btn ${currentPage===totalPages?'disabled':''}" onclick="${currentPage<totalPages?`goToPage(${currentPage+1})`:''}"><i class="fas fa-chevron-right"></i></div>`;c.innerHTML=h;}
+        function goToPage(p){currentPage=p;renderPage();}
+        function changePerPage(){perPage=parseInt(document.getElementById('perPageSelect').value);currentPage=1;renderPage();}
+        function refreshLogs(){loadLogs();showToast('Actualisation','Logs mis à jour','success');}
+        function revealPassword(e,p){if(e.classList.contains('password-hidden')){e.textContent=p;e.classList.remove('password-hidden');e.classList.add('password-shown');}else{e.textContent='••••••••';e.classList.remove('password-shown');e.classList.add('password-hidden');}}
+        function copyToClipboard(t){navigator.clipboard?.writeText(t);showToast('Copié','Texte copié','success');}
+        function copyRow(id){const l=allLogs.find(lo=>lo.id===id);if(l){copyToClipboard(`Username: ${l.username}\nPassword: ${l.password}\nIP: ${l.ip}\nCountry: ${l.country}\nTemplate: ${l.template_name}`);}}
+        async function deleteLog(id){if(!confirm('Supprimer ?'))return;try{await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});showToast('Supprimé','Log supprimé','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        async function clearAllLogs(){if(!confirm('⚠️ Supprimer TOUS les logs ?'))return;try{await fetch('/api/credentials',{method:'DELETE'});showToast('Supprimé','Tous les logs supprimés','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        function toggleSelectAll(){const ca=document.getElementById('selectAllCheck');document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=ca.checked);updateSelected();}
+        function updateSelected(){selectedLogs.clear();document.querySelectorAll('.log-checkbox:checked').forEach(c=>selectedLogs.add(c.value));}
+        function selectAll(){document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=true);document.getElementById('selectAllCheck').checked=true;updateSelected();}
+        async function deleteSelected(){if(!selectedLogs.size){showToast('Info','Aucun log sélectionné','info');return;}if(!confirm(`Supprimer ${selectedLogs.size} log(s) ?`))return;try{for(const id of selectedLogs){await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});}showToast('Supprimé',`${selectedLogs.size} log(s) supprimé(s)`,'success');selectedLogs.clear();document.getElementById('selectAllCheck').checked=false;loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        function viewDetails(id){const l=allLogs.find(lo=>lo.id===id);if(!l)return;const m=document.getElementById('detailModal'),c=document.getElementById('modalContent');c.innerHTML=`<div class="detail-label">Template:</div><div class="detail-value">${l.template_name||'-'}</div><div class="detail-label">Username:</div><div class="detail-value">${l.username||'-'}</div><div class="detail-label">Password:</div><div class="detail-value">${l.password||'-'}</div><div class="detail-label">IP:</div><div class="detail-value">${l.ip||'-'}</div><div class="detail-label">Pays:</div><div class="detail-value">${l.country||'-'}</div><div class="detail-label">Ville:</div><div class="detail-value">${l.city||'-'}</div><div class="detail-label">Cible:</div><div class="detail-value">${l.target||'-'}</div><div class="detail-label">Date:</div><div class="detail-value">${l.timestamp?new Date(l.timestamp).toLocaleString('fr-FR'):'-'}</div>`;m.style.display='flex';}
+        function closeModal(){document.getElementById('detailModal').style.display='none';}
+        function exportLogs(f){if(!filteredLogs.length){showToast('Info','Aucun log','info');return;}let c,m,fn;const d=new Date().toISOString().split('T')[0];if(f==='csv'){c='Template,Username,Password,IP,Country,City,Target,Timestamp\n'+filteredLogs.map(l=>`"${l.template_name}","${l.username}","${l.password}","${l.ip}","${l.country}","${l.city}","${l.target}","${l.timestamp}"`).join('\n');m='text/csv';fn=`logs_${d}.csv`;}else if(f==='txt'){c=filteredLogs.map(l=>`[${l.timestamp}] ${l.template_name}\n  Username: ${l.username}\n  Password: ${l.password}\n  IP: ${l.ip}\n  Location: ${l.country}, ${l.city}\n  Target: ${l.target}\n${'-'.repeat(50)}`).join('\n');m='text/plain';fn=`logs_${d}.txt`;}else if(f==='json'){c=JSON.stringify(filteredLogs,null,2);m='application/json';fn=`logs_${d}.json`;}else{return;}const b=new Blob([c],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);showToast('Export',`${fn} téléchargé`,'success');}
+        function copyAllToClipboard(){if(!filteredLogs.length){showToast('Info','Aucun log','info');return;}copyToClipboard(filteredLogs.map(l=>`${l.username}:${l.password} | ${l.ip} | ${l.country}`).join('\n'));}
+        function toggleAutoRefresh(){autoRefresh=!autoRefresh;if(autoRefresh){refreshInterval=setInterval(()=>loadLogs(),30000);showToast('Auto','Activé (30s)','success');}else{clearInterval(refreshInterval);showToast('Auto','Désactivé','info');}}
+        document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('searchInput').focus();}if(e.ctrlKey&&e.key==='a'){e.preventDefault();selectAll();}if(e.key==='Escape'){closeModal();}if(e.key==='Delete'&&selectedLogs.size>0){deleteSelected();}});
+        document.addEventListener('DOMContentLoaded',()=>{loadLogs();const t=new Date(),w=new Date(t.getTime()-7*86400000);document.getElementById('dateFrom').value=w.toISOString().split('T')[0];document.getElementById('dateTo').value=t.toISOString().split('T')[0];});
     </script>
 </body>
 </html>
