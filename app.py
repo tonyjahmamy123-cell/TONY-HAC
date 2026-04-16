@@ -723,3 +723,38 @@ def send_webhook_notifications(data, credential):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+
+# ========== ROUTES API SMTP ==========
+
+@app.route('/api/settings/smtp', methods=['PUT'])
+@login_required
+def api_settings_smtp():
+    """Mise à jour configuration SMTP"""
+    data = load_data()
+    smtp_config = request.json
+    
+    if 'settings' not in data:
+        data['settings'] = {}
+    if 'smtp' not in data['settings']:
+        data['settings']['smtp'] = {}
+    
+    data['settings']['smtp'].update(smtp_config)
+    save_data(data)
+    
+    return jsonify({'success': True})
+
+@app.route('/api/smtp/test', methods=['POST'])
+@login_required
+def api_smtp_test():
+    """Test de connexion SMTP"""
+    config = request.json
+    
+    try:
+        server = smtplib.SMTP(config['server'], int(config['port']))
+        server.starttls()
+        server.login(config['email'], config['password'])
+        server.quit()
+        return jsonify({'success': True, 'message': 'Connexion SMTP réussie'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
